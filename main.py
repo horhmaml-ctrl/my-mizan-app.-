@@ -1,109 +1,91 @@
 import streamlit as st
 import pandas as pd
 
-# إعدادات الواجهة والجوال
-st.set_page_config(page_title="الميزان دوت نت - إدارة العمليات", layout="centered")
+st.set_page_config(page_title="فاتورة بيع - الميزان", layout="centered")
 
-# تصميم الأزرار والواجهات (اللون البرتقالي الكلاسيكي)
+# تصميم CSS لمحاكاة الألوان والأشكال في الصورة
 st.markdown("""
     <style>
-    .stButton>button { width: 100%; border-radius: 10px; height: 50px; background-color: white; color: #e67e22; border: 2px solid #e67e22; font-weight: bold; margin-bottom: 10px; }
-    .header-style { background-color: #e67e22; color: white; padding: 10px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
-    .sub-card { background-color: #ffffff; padding: 15px; border-radius: 10px; border-right: 5px solid #e67e22; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+    .main { background-color: #f0faff; }
+    .header-blue { background-color: #3498db; color: white; padding: 10px; border-radius: 0 0 20px 20px; text-align: center; }
+    .invoice-title { color: #e91e63; text-align: center; font-weight: bold; font-size: 24px; margin-top: 10px; }
+    .pink-label { color: #e91e63; font-weight: bold; text-align: right; }
+    .stButton>button { border-radius: 20px; }
+    .footer-table { background-color: white; border: 1px solid #3498db; border-radius: 10px; padding: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- مخازن البيانات (قاعدة بيانات مصغرة داخل التطبيق) ---
-if 'db' not in st.session_state:
-    st.session_state.db = {
-        'items': ['دقيق سندي', 'زيت طبخ', 'سكر مطحون'], # المواد والاصناف
-        'accounts': {'1101': 'صندوق الرئيسي', '1201': 'شركة الأمل (مورد)', '1301': 'خالد محمد (عميل)'}, # شجرة الحسابات
-        'invoices': [], # سجل الفواتير
-        'current_view': 'الرئيسية' # واجهة التحكم
-    }
+# --- ترويسة الفاتورة (Header) ---
+st.markdown("""
+    <div class='header-blue'>
+        <p style='float: left;'>9:08 24/03/2026</p>
+        <p style='float: right;'>💾</p>
+        <div style='clear: both;'></div>
+        <p>مقاس الورق: 🔘 A4  ⚪ 80m</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# --- وظائف الملاحة (الرجوع للرئيسية) ---
-def go_home(): st.session_state.db['current_view'] = 'الرئيسية'
+st.markdown("<div class='invoice-title'>فاتورة بيع نقداً</div>", unsafe_allow_html=True)
 
-# --- 1. واجهة سطح المكتب (الرئيسية) ---
-if st.session_state.db['current_view'] == 'الرئيسية':
-    st.markdown("<div class='header-style'><h2>📊 لوحة تحكم الميزان</h2></div>", unsafe_allow_html=True)
-    
-    # شبكة الأزرار (الاختصارات)
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("📄 فاتورة بيع"): st.session_state.db['current_view'] = 'فاتورة'
-        if st.button("🌳 شجرة الحسابات"): st.session_state.db['current_view'] = 'شجرة'
-        if st.button("🔍 بحث المواد"): st.session_state.db['current_view'] = 'بحث_مواد'
-    with col2:
-        if st.button("📑 كشف حساب"): st.session_state.db['current_view'] = 'كشف_حساب'
-        if st.button("👤 إضافة/حذف حساب"): st.session_state.db['current_view'] = 'إدارة_حسابات'
-        if st.button("💰 أرصدة العملاء"): st.session_state.db['current_view'] = 'أرصدة'
-    
-    st.divider()
-    st.info("💡 تلميح: استخدم قائمة البحث للوصول السريع للمواد.")
+# --- مدخلات الفاتورة الأساسية ---
+col_inv_no, col_acc = st.columns([1, 2])
+with col_inv_no:
+    st.text_input("رقم الفاتورة", value="3087")
+with col_acc:
+    st.markdown("<p class='pink-label'>حساب الصندوق</p>", unsafe_allow_html=True)
+    st.selectbox("", ["الصندوق الرئيسي", "صندوق العملات"])
 
-# --- 2. واجهة الفواتير (بيع/شراء) ---
-elif st.session_state.db['current_view'] == 'فاتورة':
-    st.subheader("📝 إنشاء فاتورة جديدة")
-    with st.form("inv_form"):
-        target = st.selectbox("الحساب (العميل/المورد)", list(st.session_state.db['accounts'].values()))
-        item = st.selectbox("المادة/الصنف", st.session_state.db['items'])
-        qty = st.number_input("الكمية", min_value=1)
-        price = st.number_input("السعر الإفرادي", min_value=0.0)
-        total = qty * price
-        st.write(f"### الإجمالي: {total} ريال")
-        if st.form_submit_button("حفظ وترحيل الفاتورة 🟠"):
-            st.session_state.db['invoices'].append({'التاريخ': '2026-03-24', 'الحساب': target, 'المادة': item, 'المبلغ': total})
-            st.success("تم الترحيل بنجاح!")
-    if st.button("🔙 عودة"): go_home()
+# خيارات البيع/الشراء/نقداً/آجل
+c1, c2, c3, c4 = st.columns(4)
+c1.radio("", ["بيع", "شراء"], horizontal=True, index=0)
+c2.radio("", ["نقداً", "آجل"], horizontal=True, index=0)
+c3.checkbox("مرتجع")
 
-# --- 3. واجهة شجرة الحسابات والبحث ---
-elif st.session_state.db['current_view'] == 'شجرة':
-    st.subheader("🌳 الشجرة المحاسبية")
-    search_q = st.text_input("🔍 ابحث عن حساب (عميل، مورد، موظف)...")
-    for code, name in st.session_state.db['accounts'].items():
-        if search_q.lower() in name.lower() or search_q in code:
-            st.markdown(f"<div class='sub-card'><b>{code}</b> - {name}</div>", unsafe_allow_html=True)
-    if st.button("🔙 عودة"): go_home()
+# البحث عن حساب وملاحظات
+col_search, col_add = st.columns([4, 1])
+with col_search:
+    st.text_input("🔍 بحث عن حساب", placeholder="اكتب اسم العميل هنا...")
+with col_add:
+    st.markdown("## ➕")
 
-# --- 4. واجهة إضافة/حذف حساب ---
-elif st.session_state.db['current_view'] == 'إدارة_حسابات':
-    st.subheader("👤 إدارة الحسابات")
-    tab1, tab2 = st.tabs(["➕ إضافة حساب", "🗑️ حذف حساب"])
-    with tab1:
-        new_code = st.text_input("رمز الحساب الجديد")
-        new_name = st.text_input("اسم الحساب (العميل/المورد)")
-        if st.button("إضافة للحسابات ✅"):
-            st.session_state.db['accounts'][new_code] = new_name
-            st.success(f"تمت إضافة {new_name}")
-    with tab2:
-        del_code = st.selectbox("اختر الحساب للحذف", list(st.session_state.db['accounts'].keys()))
-        if st.button("تأكيد الحذف ❌"):
-            del st.session_state.db['accounts'][del_code]
-            st.warning("تم حذف الحساب")
-    if st.button("🔙 عودة"): go_home()
+st.text_area("ملاحظات", placeholder="أدخل الملاحظات هنا...", height=60)
 
-# --- 5. بحث المواد والأصناف ---
-elif st.session_state.db['current_view'] == 'بحث_مواد':
-    st.subheader("📦 إدارة الأصناف والمواد")
-    search_item = st.text_input("ابحث عن مادة...")
-    for i in st.session_state.db['items']:
-        if search_item.lower() in i.lower():
-            st.write(f"📦 {i}")
-    new_i = st.text_input("إضافة مادة جديدة للمستودع")
-    if st.button("إضافة مادة"):
-        st.session_state.db['items'].append(new_i)
-        st.rerun()
-    if st.button("🔙 عودة"): go_home()
+# --- تفاصيل المادة (المستودع والصنف) ---
+st.selectbox("مخزن بضاعة جاهزة", ["المخزن الرئيسي", "مخزن المعرض"])
 
-# --- 6. كشف الحساب ---
-elif st.session_state.db['current_view'] == 'كشف_حساب':
-    st.subheader("📑 تقرير كشف حساب تفصيلي")
-    acc_filter = st.selectbox("اختر الحساب", list(st.session_state.db['accounts'].values()))
-    if st.session_state.db['invoices']:
-        df = pd.DataFrame(st.session_state.db['invoices'])
-        result = df[df['الحساب'] == acc_filter]
-        st.table(result)
-    else: st.warning("لا توجد حركات مسجلة لهذا الحساب")
-    if st.button("🔙 عودة"): go_home()
+col_item, col_qty, col_price = st.columns([2, 1, 1])
+with col_item:
+    st.text_input("البحث عن صنف", placeholder="اسم الصنف أو الباركود")
+with col_qty:
+    st.number_input("العدد", min_value=1)
+with col_price:
+    st.number_input("السعر")
+
+st.button("اضافة صنف جديد")
+
+# --- جدول الأصناف (الجدول الأزرق) ---
+st.markdown("""
+    <div style='background-color: #3498db; color: white; padding: 5px; text-align: center; display: flex; justify-content: space-around; border-radius: 5px;'>
+        <span>اسم الصنف</span><span>الوحدة</span><span>العدد</span><span>السعر</span><span>الاجمالي</span>
+    </div>
+    """, unsafe_allow_html=True)
+st.write("---") # مساحة للأصناف المضافة
+
+# --- ملخص الفاتورة (التذييل السفلي) ---
+st.markdown("<div class='footer-table'>", unsafe_allow_html=True)
+f1, f2 = st.columns(2)
+with f1:
+    st.text_input("الإجمالي", value="0.00", disabled=True)
+    st.text_input("الخصم", value="0.00")
+    st.text_input("الضريبة", value="0.00")
+    st.text_input("صافي الفاتورة", value="0.00", disabled=True)
+with f2:
+    st.write("عدد القطع: 0.00")
+    st.number_input("نسبة الخصم %", value=0)
+    st.number_input("المبلغ المستلم", value=0.0)
+    st.number_input("نسبة الضريبة %", value=0)
+st.markdown("</div>", unsafe_allow_html=True)
+
+# أزرار التنقل السفلية
+st.markdown("---")
+st.columns(5)[2].button("🏠")
