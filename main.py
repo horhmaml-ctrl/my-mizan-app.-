@@ -2,95 +2,108 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# --- إعدادات النظام ---
-st.set_page_config(page_title="الخوارزمي المحاسبي Pro", layout="centered")
+# --- 1. إعدادات النظام المحاسبي ---
+st.set_page_config(page_title="الخوارزمي للمحاسبة والمستودعات", layout="wide")
 
-# --- محاكاة قاعدة البيانات (المنظمة المحاسبية) ---
-if 'db' not in st.session_state:
-    st.session_state.db = {
-        'journal': pd.DataFrame(columns=['رقم_القيد', 'التاريخ', 'الحساب', 'مدين', 'دائن', 'البيان']),
-        'inventory': {'صنف A': 100, 'صنف B': 50},
-        'page': 'home'
+# --- 2. محاكاة قاعدة البيانات (Database Engine) ---
+if 'accounting_system' not in st.session_state:
+    st.session_state.accounting_system = {
+        # دفتر اليومية العام
+        'journal': pd.DataFrame(columns=['ID', 'Date', 'Account_Code', 'Account_Name', 'Debit', 'Credit', 'Note']),
+        # دليل الحسابات (شجرة الحسابات)
+        'chart_of_accounts': {
+            '101': {'name': 'الصندوق', 'type': 'Asset', 'balance': 0},
+            '102': {'name': 'المخزن الرئيسي', 'type': 'Asset', 'balance': 0},
+            '301': {'name': 'إيراد المبيعات', 'type': 'Revenue', 'balance': 0},
+            '401': {'name': 'تكلفة البضاعة المباعة', 'type': 'Expense', 'balance': 0},
+            '501': {'name': 'المصاريف العمومية', 'type': 'Expense', 'balance': 0}
+        },
+        # المستودع (الأصناف)
+        'warehouse': {
+            'صنف_1': {'qty': 100, 'cost': 50, 'price': 80},
+            'صنف_2': {'qty': 50, 'cost': 120, 'price': 180}
+        }
     }
 
-# --- محرك القيود المزدوجة (The Accounting Engine) ---
-def record_transaction(debit_acc, credit_acc, amount, note):
-    """وظيفة تضمن توازن النظام المحاسبي 100%"""
-    new_id = (len(st.session_state.db['journal']) // 2) + 1
-    date = datetime.now().strftime("%Y-%m-%d")
+# --- 3. محرك القيود المحاسبية (The Accounting Core) ---
+def post_journal_entry(debit_entries, credit_entries, note):
+    """وظيفة ترحيل القيود وضمان توازن النظام"""
+    total_debit = sum([e['amount'] for e in debit_entries])
+    total_credit = sum([e['amount'] for e in credit_entries])
     
-    # طرف المدين
-    debit_entry = {'رقم_القيد': new_id, 'التاريخ': date, 'الحساب': debit_acc, 'مدين': amount, 'دائن': 0, 'البيان': note}
-    # طرف الدائن
-    credit_entry = {'رقم_القيد': last_id if 'last_id' in locals() else new_id, 'التاريخ': date, 'الحساب': credit_acc, 'مدين': 0, 'دائن': amount, 'البيان': note}
-    
-    st.session_state.db['journal'] = pd.concat([st.session_state.db['journal'], pd.DataFrame([debit_entry, credit_entry])], ignore_index=True)
+    if total_debit != total_credit:
+        return False, "خطأ: القيد غير متوازن!"
 
-# --- واجهة المستخدم (التصميم الاحترافي) ---
+    date = datetime.now().strftime("%Y-%m-%d %H:%M")
+    entry_id = len(st.session_state.accounting_system['journal']) // 2 + 1
+    
+    for e in debit_entries + credit_entries:
+        is_debit = e in debit_entries
+        new_row = {
+            'ID': entry_id, 'Date': date, 'Account_Code': e['code'],
+            'Account_Name': st.session_state.accounting_system['chart_of_accounts'][e['code']]['name'],
+            'Debit': e['amount'] if is_debit else 0,
+            'Credit': 0 if is_debit else e['amount'],
+            'Note': note
+        }
+        st.session_state.accounting_system['journal'] = pd.concat(
+            [st.session_state.accounting_system['journal'], pd.DataFrame([new_row])], ignore_index=True
+        )
+    return True, "تم الترحيل بنجاح"
+
+# --- 4. واجهة المستخدم الرسومية ---
 st.markdown("""
     <style>
-    .block-container { padding: 0px !important; }
-    footer, header, #MainMenu {visibility: hidden;}
-    .stApp { background-color: #f8fafc; }
-    .nav-header { background: #1e3a8a; color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 20px; }
-    div.stButton > button { width: 100%; height: 50px; border-radius: 12px; font-weight: bold; }
-    .stats-box { background: white; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center; }
+    .main { background-color: #f0f4f8; }
+    .stButton>button { width: 100%; border-radius: 10px; height: 3em; font-weight: bold; }
+    .header-box { background: #1e3a8a; color: white; padding: 20px; text-align: center; border-radius: 15px; margin-bottom: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- التنقل بين الموديلات المحاسبية ---
+# القائمة الجانبية (الموديلات)
+menu = st.sidebar.selectbox("القائمة البرمجية", ["لوحة التحكم", "فاتورة مبيعات", "المستودعات", "دفتر اليومية", "ميزان المراجعة"])
 
-# 1. لوحة التحكم (الرئيسية)
-if st.session_state.db['page'] == 'home':
-    st.markdown("<div class='nav-header'>نظام الخوارزمي للمحاسبة والمستودعات</div>", unsafe_allow_html=True)
+# --- موديول: لوحة التحكم ---
+if menu == "لوحة التحكم":
+    st.markdown("<div class='header-box'><h1>الخوارزمي للمحاسبة والمستودعات</h1></div>", unsafe_allow_html=True)
+    df = st.session_state.accounting_system['journal']
+    cash = df[df['Account_Code'] == '101']['Debit'].sum() - df[df['Account_Code'] == '101']['Credit'].sum()
+    sales = df[df['Account_Code'] == '301']['Credit'].sum()
     
-    # حساب الأرصدة لحظياً من دفتر اليومية
-    df = st.session_state.db['journal']
-    total_sales = df[df['الحساب'] == 'المبيعات']['دائن'].sum()
-    cash_balance = df[df['الحساب'] == 'الصندوق']['مدين'].sum() - df[df['الحساب'] == 'الصندوق']['دائن'].sum()
+    c1, c2 = st.columns(2)
+    c1.metric("💰 رصيد الصندوق", f"{cash:,.2f}")
+    c2.metric("📈 إجمالي المبيعات", f"{sales:,.2f}")
 
-    st.write(" ")
-    col1, col2 = st.columns(2)
-    with col1: st.markdown(f"<div class='stats-box'>💰 رصيد الصندوق<br><h2>{cash_balance:,.2f}</h2></div>", unsafe_allow_html=True)
-    with col2: st.markdown(f"<div class='stats-box'>📈 إجمالي المبيعات<br><h2>{total_sales:,.2f}</h2></div>", unsafe_allow_html=True)
-
-    st.write("---")
-    # أزرار الوصول السريع (تحاكي الصورة التي أرفقتها)
-    c1, c2, c3 = st.columns(3)
-    with c1: 
-        if st.button("➕ فاتورة"): st.session_state.db['page'] = 'invoice'; st.rerun()
-    with c2: 
-        if st.button("📝 سند صرف"): st.session_state.db['page'] = 'voucher'; st.rerun()
-    with c3: 
-        if st.button("📊 التقارير"): st.session_state.db['page'] = 'reports'; st.rerun()
-
-# 2. موديل الفواتير (ترابط محاسبي ومخزني)
-elif st.session_state.db['page'] == 'invoice':
-    st.markdown("<div class='nav-header'>تحرير فاتورة مبيعات</div>", unsafe_allow_html=True)
-    if st.button("🔙 عودة للرئيسية"): st.session_state.db['page'] = 'home'; st.rerun()
-    
-    with st.form("invoice_form"):
-        item = st.selectbox("اختر الصنف", list(st.session_state.db['inventory'].keys()))
+# --- موديول: فاتورة مبيعات (الربط الكامل) ---
+elif menu == "فاتورة مبيعات":
+    st.header("🛒 تحرير فاتورة مبيعات")
+    with st.form("sale_inv"):
+        item_name = st.selectbox("اختر الصنف", list(st.session_state.accounting_system['warehouse'].keys()))
         qty = st.number_input("الكمية", min_value=1)
-        price = st.number_input("السعر", value=10.0)
+        price = st.session_state.accounting_system['warehouse'][item_name]['price']
+        cost = st.session_state.accounting_system['warehouse'][item_name]['cost']
+        st.info(f"سعر الوحدة: {price} | الإجمالي: {qty*price}")
         
-        if st.form_submit_button("ترحيل وحفظ الفاتورة"):
-            total = qty * price
-            # إجراء القيد المزدوج تلقائياً (من الصندوق إلى المبيعات)
-            record_transaction("الصندوق", "المبيعات", total, f"بيع {qty} من {item}")
-            # تحديث المخزن فوراً
-            st.session_state.db['inventory'][item] -= qty
-            st.success(f"تم الحفظ! إجمالي الفاتورة: {total}")
+        if st.form_submit_button("حفظ وترحيل"):
+            total_sale = qty * price
+            total_cost = qty * cost
+            
+            # قيد المبيعات (من الصندوق إلى المبيعات)
+            post_journal_entry(
+                [{'code': '101', 'amount': total_sale}], # مدين
+                [{'code': '301', 'amount': total_sale}], # دائن
+                f"فاتورة مبيعات صنف: {item_name}"
+            )
+            # تحديث المخزن (إنقاص الكمية)
+            st.session_state.accounting_system['warehouse'][item_name]['qty'] -= qty
+            st.success("تم الحفظ وتوليد القيود وتحديث المخازن!")
 
-# 3. موديل التقارير (دفتر الأستاذ وميزان المراجعة)
-elif st.session_state.db['page'] == 'reports':
-    st.markdown("<div class='nav-header'>التقارير المالية الختامية</div>", unsafe_allow_html=True)
-    if st.button("🔙 عودة"): st.session_state.db['page'] = 'home'; st.rerun()
-    
-    st.subheader("📖 دفتر اليومية العام")
-    st.dataframe(st.session_state.db['journal'], use_container_width=True)
-    
-    st.write("---")
-    st.subheader("⚖️ ميزان المراجعة بالأرصدة")
-    trial_balance = st.session_state.db['journal'].groupby('الحساب')[['مدين', 'دائن']].sum()
-    st.table(trial_balance)
+# --- موديول: ميزان المراجعة ---
+elif menu == "ميزان المراجعة":
+    st.header("⚖️ ميزان المراجعة بالأرصدة")
+    df = st.session_state.accounting_system['journal']
+    if not df.empty:
+        trial_balance = df.groupby(['Account_Code', 'Account_Name']).agg({'Debit':'sum', 'Credit':'sum'})
+        st.table(trial_balance)
+    else:
+        st.warning("لا توجد بيانات محاسبية بعد.")
