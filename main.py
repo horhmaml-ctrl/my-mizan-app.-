@@ -2,67 +2,90 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# 1. إعدادات النظام الكبرى
-st.set_page_config(page_title="الخوارزمي للمحاسبة والمستودعات", layout="wide")
+# 1. إعدادات النظام
+st.set_page_config(page_title="الخوارزمي دوت نت - المحرك المالي", layout="wide")
 
-# 2. محرك قاعدة البيانات (Core Engine)
-if 'mizan_engine' not in st.session_state:
-    st.session_state.mizan_engine = {
-        'journal': pd.DataFrame(columns=['رقم_السند', 'التاريخ', 'الحساب', 'مدين', 'دائن', 'البيان']),
-        'inventory': {'صنف_أ': 100, 'صنف_ب': 200},
-        'accounts': {
-            '101': {'name': 'الصندوق الرئيسي', 'bal': 380500.00},
-            '102': {'name': 'صندوق العملات', 'bal': 0.00},
-            '103': {'name': 'صرافة السنيري', 'bal': 13068955.00}
-        }
+# 2. قاعدة البيانات المركزية (تخزين دائم للجلسة)
+if 'data' not in st.session_state:
+    st.session_state.data = {
+        'journal': pd.DataFrame(columns=['رقم', 'التاريخ', 'الحساب', 'مدين', 'دائن', 'البيان']),
+        'inventory': {'صنف ممتاز': {'qty': 100, 'price': 550}, 'صنف عادي': {'qty': 200, 'price': 120}},
+        'cash_accounts': {'الصندوق الرئيسي': 380500.00, 'صرافة السنيري': 13068955.00},
+        'page': 'dashboard'
     }
 
-# 3. واجهة المستخدم (محاكاة الميزان دوت نت 100%)
+# --- وظيفة الترحيل الآلي (The Posting Logic) ---
+def process_sale(item, qty, price, acc_name):
+    total = qty * price
+    date = datetime.now().strftime("%Y-%m-%d %H:%M")
+    inv_no = len(st.session_state.data['journal']) // 2 + 1
+    
+    # 1. تحديث المخزن
+    st.session_state.data['inventory'][item]['qty'] -= qty
+    
+    # 2. تحديث رصيد الحساب
+    st.session_state.data['cash_accounts'][acc_name] += total
+    
+    # 3. توليد القيد المزدوج (مدين/دائن)
+    new_entries = [
+        {'رقم': inv_no, 'التاريخ': date, 'الحساب': acc_name, 'مدين': total, 'دائن': 0, 'البيان': f"مبيعات {item}"},
+        {'رقم': inv_no, 'التاريخ': date, 'الحساب': 'إيراد المبيعات', 'مدين': 0, 'دائن': total, 'البيان': f"مبيعات {item}"}
+    ]
+    st.session_state.data['journal'] = pd.concat([st.session_state.data['journal'], pd.DataFrame(new_entries)], ignore_index=True)
+
+# --- واجهة المستخدم (تصميم الميزان) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f4f6f9; }
-    .header-mizan { background: linear-gradient(90deg, #d35400, #e67e22); color: white; padding: 10px 20px; border-bottom: 2px solid #a04000; display: flex; justify-content: space-between; }
-    .mizan-panel { background: white; border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; }
-    .mizan-panel-title { background: #34495e; color: white; padding: 5px 10px; font-size: 14px; text-align: right; }
-    .mizan-panel-body { padding: 15px; }
-    div.stButton > button { width: 100%; border-radius: 4px; text-align: right; background: #f8fafc; border: 1px solid #cbd5e1; }
+    .mizan-header { background: #d35400; color: white; padding: 15px; font-weight: bold; border-radius: 0 0 10px 10px; }
+    .stat-card { background: white; padding: 10px; border: 1px solid #ddd; border-radius: 5px; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# الهيدر العلوي
-st.markdown("<div class='header-mizan'><div><b>الخوارزمي دوت نت</b> للمحاسبة والمستودعات</div><div>المسؤول: ABO OMER2026</div></div>", unsafe_allow_html=True)
+# الهيدر
+st.markdown("<div class='mizan-header'>الخوارزمي دوت نت - نظام إدارة المبيعات والمخازن</div>", unsafe_allow_html=True)
 
-# تقسيم الشاشة (كما في الصورة)
-col_info, col_actions, col_status = st.columns([1.2, 1, 1.2])
+# التنقل بين الصفحات
+if st.session_state.data['page'] == 'dashboard':
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col2:
+        st.write("### 🔗 العمليات الرئيسية")
+        if st.button("📄 فتح فاتورة مبيعات جديدة", use_container_width=True):
+            st.session_state.data['page'] = 'invoice'
+            st.rerun()
+        
+        st.write("---")
+        st.write("### 🏦 أرصدة الصناديق الحالية")
+        for acc, bal in st.session_state.data['cash_accounts'].items():
+            st.info(f"**{acc}:** {bal:,.2f}")
 
-with col_info:
-    # لوحة التحذيرات
-    st.markdown("<div class='mizan-panel'><div class='mizan-panel-title'>⛔ التحذيرات</div><div class='mizan-panel-body' style='color:red;'>آخر نسخة احتياطية: 2026/03/24</div></div>", unsafe_allow_html=True)
-    # لوحة تلميح اليوم
-    st.markdown("<div class='mizan-panel'><div class='mizan-panel-title'>💡 تلميح اليوم</div><div class='mizan-panel-body'>استخدم اختصار F2 لحفظ الفواتير بسرعة.</div></div>", unsafe_allow_html=True)
+    with col1:
+        st.write("### 📦 حالة المخزن")
+        for item, info in st.session_state.data['inventory'].items():
+            st.warning(f"**{item}:** المتبقي ({info['qty']}) قطعة")
 
-with col_actions:
-    # قائمة الاختصارات (أهم العمليات)
-    st.markdown("<div class='mizan-panel'><div class='mizan-panel-title'>🔗 الاختصارات الرئيسية</div><div class='mizan-panel-body'>", unsafe_allow_html=True)
-    if st.button("📄 فاتورة مبيع آجل"): pass
-    if st.button("💸 سند صرف نقدي"): pass
-    if st.button("📦 إدخال بضاعة جاهزة"): pass
-    if st.button("👤 أرصدة العملاء"): pass
-    st.markdown("</div></div>", unsafe_allow_html=True)
+# --- شاشة الفاتورة (محاكاة الميزان) ---
+elif st.session_state.data['page'] == 'invoice':
+    st.subheader("📝 تحرير فاتورة مبيعات")
+    
+    with st.container():
+        c1, c2 = st.columns(2)
+        with c1:
+            item_selected = st.selectbox("اختر الصنف", list(st.session_state.data['inventory'].keys()))
+            acc_selected = st.selectbox("الحساب المتأثر (مدين)", list(st.session_state.data['cash_accounts'].keys()))
+        with c2:
+            qty_input = st.number_input("الكمية", min_value=1, value=1)
+            unit_price = st.session_state.data['inventory'][item_selected]['price']
+            st.write(f"**سعر الوحدة:** {unit_price}")
+            st.write(f"## الإجمالي: {qty_input * unit_price:,.2f}")
 
-with col_status:
-    # الوقت والأرصدة
-    now = datetime.now()
-    st.markdown(f"<h1 style='text-align:right; color:#2c3e50;'>{now.strftime('%H:%M')}</h1>", unsafe_allow_html=True)
-    st.markdown("<div class='mizan-panel'><div class='mizan-panel-title'>🏦 أرصدة الحسابات الجارية</div><div class='mizan-panel-body'>", unsafe_allow_html=True)
-    for code, info in st.session_state.mizan_engine['accounts'].items():
-        st.write(f"**{info['name']}:** {info['bal']:,.2f}")
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    if st.button("✅ حفظ وترحيل الفاتورة", use_container_width=True):
+        process_sale(item_selected, qty_input, unit_price, acc_selected)
+        st.success("تم الحفظ! تم تحديث المخزن وترحيل القيد آلياً.")
+        st.session_state.data['page'] = 'dashboard'
+        st.rerun()
 
-# ميكانيكا النظام (الترحيل الآلي)
-st.write("---")
-with st.expander("📝 إضافة قيد محاسبي سريع (محاكاة الترحيل)"):
-    acc = st.selectbox("الحساب", ["الصندوق الرئيسي", "صرافة السنيري"])
-    amt = st.number_input("المبلغ", min_value=0.0)
-    if st.button("ترحيل القيد ✅"):
-        st.success(f"تم ترحيل مبلغ {amt} إلى {acc} وتحديث ميزان المراجعة فوراً.")
+    if st.button("🔙 إلغاء والعودة"):
+        st.session_state.data['page'] = 'dashboard'
+        st.rerun()
