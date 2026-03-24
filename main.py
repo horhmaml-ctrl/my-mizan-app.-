@@ -1,70 +1,82 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px # لإضافة رسوم بيانية
 
-st.set_page_config(page_title="نظام الميزان المحاسبي", layout="wide")
+# إعدادات واجهة تشبه البرامج المؤسسية
+st.set_page_config(page_title="نظام الميزان المحاسبي Pro", layout="wide")
 
-# تصميم الواجهة بالألوان الاحترافية
+# تزيين الواجهة برأس احترافي
 st.markdown("""
-    <style>
-    .main { background-color: #f5f7f9; }
-    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    </style>
-    """, unsafe_allow_html=True)
+    <div style='background-color: #2c3e50; padding: 20px; border-radius: 10px; margin-bottom: 25px;'>
+        <h1 style='color: white; text-align: center; margin: 0;'>📊 نظام الميزان المحاسبي الذكي</h1>
+        <p style='color: #bdc3c7; text-align: center;'>الإصدار الاحترافي v1.0</p>
+    </div>
+""", unsafe_allow_html=True)
 
 if 'journal' not in st.session_state:
     st.session_state.journal = []
 
-# --- القائمة الجانبية ---
-st.sidebar.title("📊 الميزان Pro")
-menu = st.sidebar.selectbox("القائمة الرئيسية", ["الرئيسية (Dashboard)", "إدخال قيود", "دفتر اليومية", "كشف حساب"])
+# دليل الحسابات المصنف
+account_categories = {
+    "الأصول (أموالك)": ["الصندوق", "البنك", "المخزون"],
+    "المصاريف": ["رواتب", "إيجار", "كهرباء", "مشتريات"],
+    "الإيرادات": ["المبيعات", "إيرادات أخرى"],
+    "الالتزامات": ["الموردين", "قروض"]
+}
 
-# بيانات وهمية للبدء إذا كان الدفتر فارغاً (اختياري)
-df = pd.DataFrame(st.session_state.journal) if st.session_state.journal else pd.DataFrame(columns=["التاريخ", "الحساب", "مدين", "دائن", "البيان"])
+# القائمة الجانبية
+st.sidebar.title("💳 القائمة الرئيسية")
+menu = st.sidebar.radio("انتقل إلى:", ["لوحة التحكم (Dashboard)", "إضافة قيد محاسبي", "دفتر اليومية العام", "ميزان المراجعة"])
 
-if menu == "الرئيسية (Dashboard)":
-    st.title("📈 لوحة التحكم المالية")
-    
+df = pd.DataFrame(st.session_state.journal) if st.session_state.journal else pd.DataFrame(columns=["التاريخ", "الحساب", "التصنيف", "مدين", "دائن", "البيان"])
+
+if menu == "لوحة التحكم (Dashboard)":
+    st.subheader("📈 الملخص المالي اللحظي")
     if not df.empty:
-        col1, col2, col3 = st.columns(3)
-        total_in = df["مدين"].sum()
-        total_out = df["دائن"].sum()
-        col1.metric("إجمالي المقبوضات", f"{total_in} $")
-        col2.metric("إجمالي المصاريف", f"{total_out} $")
-        col3.metric("صافي الربح", f"{total_in - total_out} $", delta=float(total_in - total_out))
-
-        # رسم بياني للمصاريف
-        st.subheader("📊 تحليل الحسابات")
-        chart_data = df.groupby("الحساب")[["مدين", "دائن"]].sum()
-        st.bar_chart(chart_data)
-    else:
-        st.info("مرحباً بك! ابدأ بإدخال أول عملية مالية من القائمة الجانبية.")
-
-elif menu == "إدخال قيود":
-    st.subheader("📝 تسجيل قيد محاسبي جديد")
-    with st.form("my_form", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        acc = c1.selectbox("اسم الحساب", ["الصندوق", "البنك", "المبيعات", "المشتريات", "رواتب", "إيجار"])
-        amount_type = c2.radio("نوع العملية", ["قبض (مدين)", "صرف (دائن)"])
-        amount = st.number_input("المبلغ", min_value=0.0)
-        note = st.text_input("البيان / ملاحظات")
+        # حسابات سريعة
+        total_debit = df["مدين"].sum()
+        total_credit = df["دائن"].sum()
+        revenue = df[df["التصنيف"] == "الإيرادات"]["دائن"].sum()
+        expenses = df[df["التصنيف"] == "المصاريف"]["مدين"].sum()
         
-        if st.form_submit_button("اعتماد القيد"):
-            new_entry = {
+        c1, c2, c3 = st.columns(3)
+        c1.metric("إجمالي الإيرادات", f"{revenue} $")
+        c2.metric("إجمالي المصاريف", f"{expenses} $")
+        c3.metric("صافي الربح", f"{revenue - expenses} $", delta=float(revenue - expenses))
+        
+        st.divider()
+        st.subheader("📊 تحليل الحسابات")
+        st.bar_chart(df.groupby("الحساب")[["مدين", "دائن"]].sum())
+    else:
+        st.info("ابدأ بإضافة أول قيد محاسبي لتظهر الإحصائيات هنا.")
+
+elif menu == "إضافة قيد محاسبي":
+    st.subheader("📝 تسجيل حركة مالية")
+    with st.form("accounting_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        cat = col1.selectbox("فئة الحساب", list(account_categories.keys()))
+        acc = col2.selectbox("اسم الحساب", account_categories[cat])
+        
+        col3, col4 = st.columns(2)
+        debit = col3.number_input("مدين (إدخال مبلغ +)", min_value=0.0)
+        credit = col4.number_input("دائن (إخراج مبلغ -)", min_value=0.0)
+        
+        note = st.text_input("البيان (شرح العملية)")
+        
+        if st.form_submit_button("ترحيل العملية إلى الميزانية ✅"):
+            st.session_state.journal.append({
                 "التاريخ": pd.Timestamp.now().strftime("%Y-%m-%d"),
-                "الحساب": acc,
-                "مدين": amount if "قبض" in amount_type else 0,
-                "دائن": amount if "صرف" in amount_type else 0,
-                "البيان": note
-            }
-            st.session_state.journal.append(new_entry)
-            st.success("تم ترحيل القيد للميزانية!")
+                "الحساب": acc, "التصنيف": cat, "مدين": debit, "دائن": credit, "البيان": note
+            })
+            st.success("تم ترحيل القيد بنجاح!")
 
-elif menu == "دفتر اليومية":
-    st.subheader("📅 سجل العمليات اليومية")
-    st.dataframe(df, use_container_width=True)
+elif menu == "ميزان المراجعة":
+    st.subheader("⚖️ ميزان المراجعة التحليلي")
+    if not df.empty:
+        summary = df.groupby(["التصنيف", "الحساب"]).agg({"مدين": "sum", "دائن": "sum"})
+        summary["الرصيد"] = summary["مدين"] - summary["دائن"]
+        st.table(summary)
+    else: st.warning("لا توجد أرصدة")
 
-# زر الحذف
-if st.sidebar.button("⚠️ تصفير النظام"):
+if st.sidebar.button("🗑️ تصفير النظام"):
     st.session_state.journal = []
     st.rerun()
