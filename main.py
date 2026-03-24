@@ -1,91 +1,92 @@
 import streamlit as st
+import pandas as pd
+from datetime import datetime
 
-# إعداد الصفحة لتكون نظيفة جداً
-st.set_page_config(page_title="الميزان دوت نت", layout="centered")
+# إعدادات البرنامج الأساسية
+st.set_page_config(page_title="برنامج الخوارزمي المحاسبي", layout="centered")
 
-# --- إدارة التنقل ---
+# --- محاكي قاعدة البيانات (Storage) ---
+if 'transactions' not in st.session_state:
+    st.session_state.transactions = [] # لتخزين القيود المحاسبية
 if 'page' not in st.session_state:
-    st.session_state.page = 'home'
+    st.session_state.page = 'dashboard'
 
-# --- تصميم CSS مستوحى من "الميزان" (الأزرق والوردي) ---
+# --- تصميم الواجهة (CSS) ليكون احترافياً وهادئاً ---
 st.markdown("""
     <style>
-    .block-container { padding: 10px !important; }
+    .block-container { padding: 0px !important; }
     footer, header, #MainMenu {visibility: hidden;}
-    .stApp { background-color: #f0faff; }
-
-    /* عنوان الفاتورة الوردي المميز */
-    .inv-header {
-        color: #e91e63; font-weight: bold; font-size: 24px;
-        text-align: center; margin-bottom: 20px;
-    }
-
-    /* تصميم الحقول لتبدو كجداول الميزان */
-    .stTextInput>div>div>input, .stSelectbox>div>div>div {
-        border: 1px solid #3498db !important;
-        border-radius: 5px !important;
-    }
-
-    /* الأزرار الزرقاء */
-    div.stButton > button {
-        background-color: #3498db !important;
-        color: white !important;
-        border-radius: 20px !important;
-        width: 100% !important;
-    }
-
-    /* شريط المعلومات السفلي */
-    .mizan-footer {
-        background-color: white; border: 2px solid #3498db;
-        border-radius: 10px; padding: 15px; margin-top: 20px;
-    }
+    .stApp { background-color: #f4f7f6; }
+    .main-title { background: #2c3e50; color: white; padding: 20px; text-align: center; font-size: 22px; font-weight: bold; border-radius: 0 0 20px 20px; }
+    .stat-card { background: white; padding: 15px; border-radius: 10px; border-right: 5px solid #27ae60; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- واجهة الفاتورة (روح الميزان) ---
-st.markdown("<div class='inv-header'>فاتورة بيع نقداً</div>", unsafe_allow_html=True)
+# --- الوظائف المحاسبية (The Logic) ---
+def save_invoice(customer, amount):
+    # توليد قيد محاسبي آلي
+    entry = {
+        "التاريخ": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "البيان": f"مبيعات لـ {customer}",
+        "مدين (صندوق)": amount,
+        "دائن (مبيعات)": amount
+    }
+    st.session_state.transactions.append(entry)
 
-# القسم الأول: البيانات الأساسية
-with st.container():
-    col1, col2 = st.columns([1, 2])
+# --- عرض الصفحات ---
+
+# 1. لوحة التحكم (الرئيسية)
+if st.session_state.page == 'dashboard':
+    st.markdown("<div class='main-title'>الخوارزمي للمحاسبة الذكية</div>", unsafe_allow_html=True)
+    
+    # عرض ملخص مالي سريع
+    total_sales = sum([t['دائن (مبيعات)'] for t in st.session_state.transactions])
+    
+    st.write(" ")
+    col1, col2 = st.columns(2)
     with col1:
-        st.text_input("رقم الفاتورة", value="3087")
+        st.markdown(f"<div class='stat-card'><p>إجمالي المبيعات</p><h3>{total_sales:,.2f}</h3></div>", unsafe_allow_html=True)
     with col2:
-        st.selectbox("حساب الصندوق", ["الصندوق الرئيسي", "صندوق المبيعات"])
+        st.markdown(f"<div class='stat-card' style='border-right-color:#e74c3c'><p>عدد العمليات</p><h3>{len(st.session_state.transactions)}</h3></div>", unsafe_allow_html=True)
 
-# القسم الثاني: البحث والمخزن
-st.text_input("🔍 بحث عن حساب (عميل)")
-st.selectbox("المخزن", ["مخزن بضاعة جاهزة", "المخزن الرئيسي"])
+    st.write("---")
+    
+    # أزرار العمليات
+    if st.button("➕ فاتورة بيع جديدة", use_container_width=True):
+        st.session_state.page = 'invoice'
+        st.rerun()
+        
+    if st.button("📑 كشف الحساب العام", use_container_width=True):
+        st.session_state.page = 'report'
+        st.rerun()
 
-st.markdown("---")
+# 2. صفحة الفاتورة (الإدخال)
+elif st.session_state.page == 'invoice':
+    st.markdown("<div class='main-title'>تحرير فاتورة بيع</div>", unsafe_allow_html=True)
+    
+    with st.form("inv_form"):
+        cust_name = st.text_input("اسم العميل", "عميل نقدي")
+        inv_amount = st.number_input("إجمالي المبلغ", min_value=0.0, format="%.2f")
+        submitted = st.form_submit_button("حفظ وترحيل الفاتورة")
+        
+        if submitted:
+            save_invoice(cust_name, inv_amount)
+            st.success("تم ترحيل الفاتورة للحسابات بنجاح!")
+            
+    if st.button("🔙 العودة للرئيسية"):
+        st.session_state.page = 'dashboard'
+        st.rerun()
 
-# القسم الثالث: إضافة المواد (الجدول التفاعلي)
-col_m, col_q, col_p = st.columns([2, 1, 1])
-with col_m:
-    st.text_input("المادة", placeholder="اسم الصنف")
-with col_q:
-    st.text_input("العدد", value="1")
-with col_p:
-    st.text_input("السعر", value="0.00")
-
-if st.button("➕ إضافة المادة للفاتورة"):
-    st.success("تمت الإضافة للجدول")
-
-# القسم الرابع: ملخص الفاتورة (الفوتر الأبيض)
-st.markdown("<div class='mizan-footer'>", unsafe_allow_html=True)
-f1, f2 = st.columns(2)
-with f1:
-    st.write("**الإجمالي:** 0.00")
-    st.write("**الضريبة (15%):** 0.00")
-with f2:
-    st.write("**الخصم:** 0.00")
-    st.write("### **الصافي: 0.00**")
-st.markdown("</div>", unsafe_allow_html=True)
-
-# أزرار الحفظ والطباعة
-st.write(" ")
-save_col, print_col = st.columns(2)
-with save_col:
-    st.button("💾 حفظ الفاتورة")
-with print_col:
-    st.button("🖨️ طباعة")
+# 3. صفحة التقارير (كشف الحساب)
+elif st.session_state.page == 'report':
+    st.markdown("<div class='main-title'>كشف الحساب الختامي</div>", unsafe_allow_html=True)
+    
+    if st.session_state.transactions:
+        df = pd.DataFrame(st.session_state.transactions)
+        st.table(df) # عرض القيود المحاسبية كما هي في الدفاتر
+    else:
+        st.warning("لا توجد عمليات مسجلة بعد.")
+        
+    if st.button("🔙 عودة"):
+        st.session_state.page = 'dashboard'
+        st.rerun()
