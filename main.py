@@ -1,112 +1,139 @@
 import streamlit as st
 import pandas as pd
 
-# إعداد الصفحة بنمط النظام المؤسسي
-st.set_page_config(page_title="نظام الميزان المتكامل Pro", layout="wide")
+# إعداد الصفحة وتغيير السمة للون البرتقالي والرمادي
+st.set_page_config(page_title="نظام الميزان - واجهة الاختصارات", layout="wide")
 
-# تصميم CSS للواجهة الاحترافية (أيقونات برتقالية وأزرار واضحة)
+# تصميم CSS متقدم للأزرار الكبيرة والاختصارات
 st.markdown("""
     <style>
-    .main { background-color: #f8f9fa; }
-    .stSidebar { background-color: #2c3e50; }
-    .module-card { background-color: white; padding: 20px; border-radius: 10px; border-top: 5px solid #FF8C00; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    h1, h2, h3 { color: #2c3e50; }
+    .main { background-color: #f0f2f5; }
+    .stButton>button {
+        height: 100px;
+        background-color: white;
+        color: #FF8C00;
+        border: 2px solid #FF8C00;
+        border-radius: 15px;
+        font-size: 18px;
+        font-weight: bold;
+        transition: 0.3s;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .stButton>button:hover {
+        background-color: #FF8C00;
+        color: white;
+        transform: translateY(-5px);
+    }
+    .header-bar {
+        background-color: #FF8C00;
+        padding: 15px;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+        margin-bottom: 30px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# تهيئة مخازن البيانات (في تطبيق حقيقي نستخدم قاعدة بيانات)
-if 'data' not in st.session_state:
-    st.session_state.data = {
-        'journal': [], 'inventory': {'مواد خام': 100, 'منتج جاهز': 0},
-        'customers': ['عميل نقدي', 'شركة الأمل'], 'suppliers': ['مورد المواد', 'المصنع العالمي'],
-        'employees': ['أحمد (محاسب)', 'سارّة (مبيعات)']
-    }
+# تهيئة البيانات
+if 'journal' not in st.session_state:
+    st.session_state.journal = []
+if 'view' not in st.session_state:
+    st.session_state.view = "الرئيسية"
 
-# --- القائمة الجانبية: شجرة الحسابات المركزية ---
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2622/2622814.png", width=100) # أيقونة برتقالية افتراضية
-    st.markdown("<h2 style='color: #FF8C00;'>🏛️ مركز الإدارة</h2>", unsafe_allow_html=True)
-    menu = st.radio("النشاط الحالي:", 
-                    ["📊 لوحة القيادة", "📦 المستودعات", "🏭 خط التصنيع", "🧾 المشتريات (الموردين)", "💰 المبيعات (العملاء)", "👥 الموظفين", "⚖️ الحسابات الختامية"])
+# ترويسة البرنامج
+st.markdown("<div class='header-bar'><h1>🟠 نظام الميزان للمحاسبة والمستودعات - واجهة الاختصارات</h1></div>", unsafe_allow_html=True)
 
-# --- 1. لوحة القيادة (Dashboard) ---
-if menu == "📊 لوحة القيادة":
-    st.title("📈 ملخص الأداء العام")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("📦 قطع في المستودع", sum(st.session_state.data['inventory'].values()))
-    c2.metric("👥 عدد العملاء", len(st.session_state.data['customers']))
-    c3.metric("🏭 عمليات التصنيع", "5 جارية")
-    c4.metric("💰 رصيد الصندوق", "15,400 $")
+# --- شريط جانبي ثابت للعودة للرئيسية ---
+if st.sidebar.button("🏠 العودة لسطح المكتب"):
+    st.session_state.view = "الرئيسية"
+
+st.sidebar.markdown("---")
+st.sidebar.write("👤 المستخدم: المدير العام")
+st.sidebar.write("📅 التاريخ: " + pd.Timestamp.now().strftime("%Y-%m-%d"))
+
+# --- منطق العرض (التبديل بين الواجهات) ---
+
+if st.session_state.view == "الرئيسية":
+    st.subheader("⚡ الوصول السريع (الاختصارات)")
     
-    st.markdown("### 🕒 آخر الحركات المالية")
-    if st.session_state.data['journal']:
-        st.table(pd.DataFrame(st.session_state.data['journal']).tail(5))
-    else: st.info("لا توجد حركات مسجلة")
+    # شبكة الاختصارات (4 أعمدة)
+    row1_col1, row1_col2, row1_col3, row1_col4 = st.columns(4)
+    
+    with row1_col1:
+        if st.button("🛒\nفاتورة بيع"):
+            st.session_state.view = "فاتورة بيع"
+            st.rerun()
+            
+    with row1_col2:
+        if st.button("📦\nفاتورة شراء"):
+            st.session_state.view = "فاتورة شراء"
+            st.rerun()
+            
+    with row1_col3:
+        if st.button("📥\nسند قبض"):
+            st.session_state.view = "سند قبض"
+            st.rerun()
+            
+    with row1_col4:
+        if st.button("📤\nسند صرف"):
+            st.session_state.view = "سند صرف"
+            st.rerun()
 
-# --- 2. المستودعات ---
-elif menu == "📦 المستودعات":
-    st.header("📦 إدارة المخزون والجرد")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("📊 الجرد الحالي")
-        st.write(st.session_state.data['inventory'])
-    with col2:
-        st.subheader("📥 إضافة بضاعة")
-        item = st.selectbox("المادة", ["مواد خام", "منتج جاهز"])
-        qty = st.number_input("الكمية", min_value=1)
-        if st.button("تحديث المخزن 🟠"):
-            st.session_state.data['inventory'][item] += qty
-            st.success("تم تحديث المستودع")
+    row2_col1, row2_col2, row2_col3, row2_col4 = st.columns(4)
+    
+    with row2_col1:
+        if st.button("👥\nأرصدة العملاء"):
+            st.session_state.view = "أرصدة العملاء"
+            st.rerun()
+            
+    with row2_col2:
+        if st.button("🏭\nالتصنيع"):
+            st.session_state.view = "التصنيع"
+            st.rerun()
+            
+    with row2_col3:
+        if st.button("⚖️\nميزان المراجعة"):
+            st.session_state.view = "ميزان المراجعة"
+            st.rerun()
+            
+    with row2_col4:
+        if st.button("⚙️\nالإعدادات"):
+            st.info("الإعدادات قيد التطوير")
 
-# --- 3. خط التصنيع ---
-elif menu == "🏭 خط التصنيع":
-    st.header("🏭 قسم الإنتاج والتصنيع")
-    st.info("هنا يتم تحويل المواد الخام إلى منتجات جاهزة (خصم من مخزن الخام وإضافة للجاهز)")
-    with st.form("prod_form"):
-        raw_qty = st.number_input("كمية الخام المستخدمة", min_value=1)
-        res_qty = st.number_input("كمية المنتج الجاهز الناتجة", min_value=1)
-        if st.form_submit_button("بدء عملية التصنيع ⚙️"):
-            if st.session_state.data['inventory']['مواد خام'] >= raw_qty:
-                st.session_state.data['inventory']['مواد خام'] -= raw_qty
-                st.session_state.data['inventory']['منتج جاهز'] += res_qty
-                st.success("تمت عملية التصنيع بنجاح وترحيلها للمخازن")
-            else: st.error("المواد الخام غير كافية!")
+    st.markdown("---")
+    st.subheader("📊 نظرة عامة على السيولة")
+    # عرض رسم بياني سريع أو ملخص أرقام
+    df = pd.DataFrame(st.session_state.journal)
+    if not df.empty:
+        st.line_chart(df.groupby("التاريخ")["مدين"].sum())
+    else:
+        st.write("لا توجد حركات مالية لعرضها في الرسم البياني حالياً.")
 
-# --- 4. المشتريات (الموردين) ---
-elif menu == "🧾 المشتريات (الموردين)":
-    st.header("🤝 إدارة الموردين والمشتريات")
-    with st.form("pur_form"):
-        sup = st.selectbox("اختر المورد", st.session_state.data['suppliers'])
-        val = st.number_input("قيمة الفاتورة", min_value=0.0)
-        if st.form_submit_button("حفظ فاتورة الشراء"):
-            st.session_state.data['journal'].append({'التاريخ': '2026-03-24', 'البيان': f'شراء من {sup}', 'مدين': 0, 'دائن': val})
-            st.success("تم تسجيل الفاتورة في حساب المورد")
+# --- واجهات العمليات (تظهر عند الضغط على الاختصار) ---
 
-# --- 5. المبيعات (العملاء) ---
-elif menu == "💰 المبيعات (العملاء)":
-    st.header("🛒 فاتورة بيع للعملاء")
-    with st.form("sale_form"):
-        cus = st.selectbox("اسم العميل", st.session_state.data['customers'])
-        val = st.number_input("مبلغ البيع", min_value=0.0)
-        if st.form_submit_button("إصدار فاتورة بيع 🟠"):
-            st.session_state.data['journal'].append({'التاريخ': '2026-03-24', 'البيان': f'بيع لـ {cus}', 'مدين': val, 'دائن': 0})
-            st.success("تم إصدار الفاتورة وقبض المبلغ في الصندوق")
+elif st.session_state.view == "فاتورة بيع":
+    st.header("📝 فاتورة بيع نقدية/آجلة")
+    with st.form("sale"):
+        customer = st.selectbox("العميل", ["عميل نقدي", "شركة التقنية", "مؤسسة النجاح"])
+        amount = st.number_input("إجمالي الفاتورة", min_value=0.0)
+        if st.form_submit_button("اعتماد وحفظ 🟠"):
+            st.session_state.journal.append({"التاريخ": pd.Timestamp.now().strftime("%Y-%m-%d"), "البيان": f"بيع لـ {customer}", "مدين": amount, "دائن": 0})
+            st.success("تم الحفظ والترحيل")
+            
+elif st.session_state.view == "سند قبض":
+    st.header("📥 سند قبض نقدي")
+    with st.form("receipt"):
+        from_acc = st.text_input("استلمنا من السيد/السادة")
+        amount = st.number_input("المبلغ", min_value=0.0)
+        if st.form_submit_button("ترحيل السند"):
+            st.session_state.journal.append({"التاريخ": pd.Timestamp.now().strftime("%Y-%m-%d"), "البيان": f"قبض من {from_acc}", "مدين": amount, "دائن": 0})
+            st.success("تم الترحيل للصندوق")
 
-# --- 6. الموظفين ---
-elif menu == "👥 الموظفين":
-    st.header("👥 كادر العمل والرواتب")
-    for emp in st.session_state.data['employees']:
-        st.write(f"👤 {emp} - [صرف راتب] - [كشف دوام]")
-    new_emp = st.text_input("إضافة موظف جديد")
-    if st.button("إضافة 👤"):
-        st.session_state.data['employees'].append(new_emp)
-        st.rerun()
-
-# --- 7. الحسابات الختامية ---
-elif menu == "⚖️ الحسابات الختامية":
-    st.header("⚖️ ميزان المراجعة والأرباح والخسائر")
-    if st.session_state.data['journal']:
-        df = pd.DataFrame(st.session_state.data['journal'])
+elif st.session_state.view == "أرصدة العملاء":
+    st.header("👥 كشف أرصدة العملاء")
+    if st.session_state.journal:
+        df = pd.DataFrame(st.session_state.journal)
         st.dataframe(df, use_container_width=True)
-        st.metric("صافي الدخل", f"{df['مدين'].sum() - df['دائن'].sum()} $")
-    else: st.warning("لا توجد حركات مالية بعد.")
+    else:
+        st.warning("لا توجد بيانات عملاء")
