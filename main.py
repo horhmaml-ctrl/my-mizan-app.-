@@ -1,165 +1,129 @@
 import streamlit as st
-import pandas as pd
 
-# إعداد الصفحة لتكون مضغوطة ومناسبة للجوال تماماً
-st.set_page_config(page_title="فاتورة الميزان", layout="centered")
+# إعدادات الصفحة لتكون تطبيق جوال (بدون هوامش)
+st.set_page_config(page_title="نظام محاسبي", layout="centered", initial_sidebar_state="collapsed")
 
-# هندسة الواجهة (CSS) لتطابق الصورة حرفياً
+# تصميم CSS مكثف لمحاكاة واجهة الأندرويد المحاسبية
 st.markdown("""
     <style>
-    /* إخفاء القوائم العلوية والسفلية لتبدو كتطبيق */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    
-    .main { background-color: #f8faff; }
-    
-    /* الترويسة الزرقاء العلوية */
-    .top-blue-bar {
-        background-color: #3b9df5;
-        color: white;
-        padding: 5px 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 13px;
-        border-radius: 0 0 10px 10px;
+    /* إخفاء عناصر الويب */
+    #MainMenu, footer, header {visibility: hidden;}
+    .block-container { padding: 0px !important; margin: 0px !important; }
+    .stApp { background-color: #f8fafc; }
+
+    /* الشريط العلوي الأزرق الداكن */
+    .app-header {
+        background-color: #2563eb; color: white;
+        padding: 15px; text-align: center;
+        font-weight: bold; font-size: 18px;
+        display: flex; justify-content: space-between;
+        position: sticky; top: 0; z-index: 999;
     }
 
-    /* عنوان الفاتورة الوردي */
-    .inv-title {
-        color: #d81b60;
-        text-align: center;
-        font-size: 22px;
-        font-weight: bold;
-        margin: 5px 0;
+    /* شبكة الأزرار العلوية الصغيرة */
+    .quick-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: 4px; padding: 5px; background: #e2e8f0;
     }
-
-    /* تسميات الحقول الوردية */
-    .pink-text { color: #d81b60; font-weight: bold; font-size: 14px; text-align: right; margin-bottom: 2px; }
-
-    /* تنسيق الحقول لتكون صغيرة (Compact) */
-    .stTextInput>div>div>input, .stSelectbox>div>div>div {
-        height: 35px !important;
-        border-radius: 5px !important;
-        border: 1px solid #3b9df5 !important;
+    div.stButton > button {
+        width: 100%; height: 40px !important;
+        background-color: #3b82f6; color: white;
+        border: none; font-size: 11px; font-weight: bold;
+        border-radius: 4px; padding: 0px;
     }
+    /* أزرار بلون مختلف (بنفسجي/رمادي) حسب الصورة */
+    div.stButton > button[kind="secondary"] { background-color: #6366f1; }
 
-    /* شريط خيارات (بيع/شراء - نقدا/اجل) */
-    .radio-group {
-        display: flex;
-        justify-content: space-between;
-        background: white;
-        padding: 5px;
-        border: 1px solid #3b9df5;
-        border-radius: 20px;
-        margin: 5px 0;
+    /* تصميم البطاقات (Cards) */
+    .card-container {
+        display: grid; grid-template-columns: 1fr 1fr;
+        gap: 10px; padding: 10px; margin-bottom: 60px;
     }
+    .mizan-card {
+        background: white; border: 1px solid #bfdbfe;
+        border-radius: 12px; padding: 15px;
+        text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .card-icon { width: 45px; margin-bottom: 8px; }
+    .card-title { font-size: 14px; font-weight: bold; color: #1e293b; margin: 0; }
+    .card-badge { color: #ef4444; font-size: 18px; font-weight: bold; }
 
-    /* الجدول الأزرق */
-    .blue-table-header {
-        background-color: #3b9df5;
-        color: white;
-        padding: 8px;
-        display: flex;
-        justify-content: space-between;
-        font-size: 12px;
-        font-weight: bold;
-        border-radius: 5px 5px 0 0;
-    }
-    
-    /* صندوق الإجماليات السفلي */
-    .totals-box {
-        border: 1px solid #3b9df5;
-        background: white;
-        padding: 10px;
-        border-radius: 10px;
-        margin-top: 10px;
-        font-size: 12px;
+    /* شريط المعلومات السفلي */
+    .bottom-status-bar {
+        position: fixed; bottom: 0; width: 100%;
+        background-color: #1d4ed8; color: white;
+        display: grid; grid-template-columns: 1fr 1fr 1fr;
+        text-align: center; padding: 8px 0; font-size: 11px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 1. الشريط العلوي (الساعة والباركود وحجم الورق)
+# 1. Header
 st.markdown("""
-    <div class='top-blue-bar'>
-        <span>9:08 24/03/2026</span>
-        <span>مقاس الورق: A4 🔘 | 80m ⚪</span>
-        <span style='font-size: 20px;'>💾</span>
+    <div class='app-header'>
+        <span>🔍</span>
+        <span>نظام محاسبي متكامل</span>
+        <span>🌙 ☰</span>
     </div>
     """, unsafe_allow_html=True)
 
-# 2. العنوان ورقم الفاتورة
-st.markdown("<div class='inv-title'>فاتورة بيع نقداً</div>", unsafe_allow_html=True)
+# 2. Quick Actions Row (الأزرار الصغيرة العلوية)
+c1, c2, c3 = st.columns(3)
+with c1: st.button("سند صرف/قبض")
+with c2: st.button("سند جديد")
+with c3: st.button("قيد عام")
 
-c_inv_no, c_acc_label = st.columns([1, 2])
-with c_inv_no:
-    st.text_input("رقم الفاتورة", "3087", label_visibility="collapsed")
-with c_acc_label:
-    st.markdown("<div class='pink-text'>حساب الصندوق</div>", unsafe_allow_html=True)
-    st.selectbox("حساب الصندوق", ["الصندوق الرئيسي", "صندوق العملات"], label_visibility="collapsed")
+c4, c5, c6 = st.columns(3)
+with c4: st.button("فاتورة جديدة")
+with c5: st.button("حوالة جديدة")
+with c6: st.button("عروض/طلبيات")
 
-# 3. شريط الخيارات (نفس راديو الصورة)
-col_opt1, col_opt2, col_opt3 = st.columns(3)
-with col_opt1:
-    st.radio("النوع", ["بيع", "شراء"], horizontal=True, label_visibility="collapsed")
-with col_opt2:
-    st.radio("الدفع", ["نقداً", "آجل"], horizontal=True, label_visibility="collapsed")
-with col_opt3:
-    st.checkbox("مرتجع")
+c7, c8, c9 = st.columns(3)
+with c7: st.button("مراجعة الحركات")
+with c8: st.button("صرف عملات")
+with c9: st.button("كشف حساب")
 
-# 4. البحث والملاحظات والمستودع
-col_search, col_plus = st.columns([5, 1])
-with col_search:
-    st.text_input("البحث", placeholder="بحث عن حساب", label_visibility="collapsed")
-with col_plus:
-    st.button("➕")
+# 3. Dashboard Cards (البطاقات الرئيسية)
+# سنستخدم الروابط المباشرة للأيقونات لتبدو حقيقية
+cards = [
+    {"title": "العملاء", "icon": "👤", "count": "0", "color": "#facc15"},
+    {"title": "الموردين", "icon": "👨‍🔧", "count": "0", "color": "#3b82f6"},
+    {"title": "المصاريف", "icon": "✂️", "count": "0", "color": "#22c55e"},
+    {"title": "الموظفين", "icon": "🏢", "count": "0", "color": "#6366f1"},
+    {"title": "المبيعات", "icon": "📈", "count": "0", "color": "#f97316"},
+    {"title": "المشتريات", "icon": "🛒", "count": "0", "color": "#06b6d4"},
+    {"title": "الاصول", "icon": "📜", "count": "0", "color": "#8b5cf6"},
+    {"title": "الصناديق والبنوك", "icon": "🏦", "count": "0", "color": "#1e40af"}
+]
 
-st.text_input("الملاحظات", placeholder="ملاحظات", label_visibility="collapsed")
+# عرض البطاقات في صفوف (2 في كل صف)
+for i in range(0, len(cards), 2):
+    col_l, col_r = st.columns(2)
+    with col_r: # اليمين في الصورة يبدأ بالعملاء
+        card = cards[i]
+        st.markdown(f"""
+            <div class='mizan-card'>
+                <div style='font-size:35px;'>{card['icon']}</div>
+                <p class='card-title'>{card['title']}</p>
+                <p class='card-badge'>{card['count']}</p>
+            </div>
+            """, unsafe_allow_html=True)
+    with col_l:
+        if i+1 < len(cards):
+            card = cards[i+1]
+            st.markdown(f"""
+                <div class='mizan-card'>
+                    <div style='font-size:35px;'>{card['icon']}</div>
+                    <p class='card-title'>{card['title']}</p>
+                    <p class='card-badge'>{card['count']}</p>
+                </div>
+                """, unsafe_allow_html=True)
 
-col_store, col_mic = st.columns([5, 1])
-with col_store:
-    st.selectbox("المخزن", ["مخزن بضاعة جاهزة", "المخزن الرئيسي"], label_visibility="collapsed")
-with col_mic:
-    st.markdown("<div style='text-align:center; font-size:20px; padding-top:5px;'>🎙️</div>", unsafe_allow_html=True)
-
-# 5. منطقة الأصناف (إدخال الصنف)
-col_item_search, col_barcode = st.columns([5, 1])
-with col_item_search:
-    st.text_input("صنف", placeholder="بحث عن صنف", label_visibility="collapsed")
-with col_barcode:
-    st.markdown("<div style='text-align:center; font-size:20px;'>📊</div>", unsafe_allow_html=True)
-
-c_qty, c_price, c_add = st.columns([1, 1, 2])
-with c_qty: st.text_input("العدد", "1")
-with c_price: st.text_input("السعر", "0.00")
-with c_add: st.button("إضافة صنف جديد")
-
-# 6. الجدول (رأس الجدول الأزرق)
+# 4. Fixed Footer
 st.markdown("""
-    <div class='blue-table-header'>
-        <span>اسم الصنف</span>
-        <span>الوحدة</span>
-        <span>العدد</span>
-        <span>السعر</span>
-        <span>الاجمالي</span>
+    <div class='bottom-status-bar'>
+        <div>الإيرادات<br>0.00</div>
+        <div>المصروفات<br>0.00</div>
+        <div>صافي الأرباح<br>0.00</div>
     </div>
-    <div style='background: white; height: 100px; border: 1px solid #3b9df5; border-top: none;'></div>
     """, unsafe_allow_html=True)
-
-# 7. الإجماليات والضرائب (التذييل)
-st.markdown("<div class='totals-box'>", unsafe_allow_html=True)
-col_f1, col_f2 = st.columns(2)
-with col_f1:
-    st.write("عدد القطع: 0.00")
-    st.text_input("الاجمالي", "0.00")
-    st.text_input("صافي الفاتورة", "0.00")
-with col_f2:
-    st.number_input("نسبة الخصم %", 0)
-    st.text_input("المبلغ المستلم", "0.00")
-    st.number_input("نسبة الضريبة %", 0)
-st.markdown("</div>", unsafe_allow_html=True)
-
-# أزرار التنقل السفلية
-st.markdown("---")
-st.columns(3)[1].button("🏠")
