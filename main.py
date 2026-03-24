@@ -1,85 +1,109 @@
 import streamlit as st
 import pandas as pd
 
-# إعداد الصفحة للجوال
-st.set_page_config(page_title="الميزان - تخصيص الواجهة", layout="centered")
+# إعدادات الواجهة والجوال
+st.set_page_config(page_title="الميزان دوت نت - إدارة العمليات", layout="centered")
 
-# تصميم CSS للأزرار والقوائم
+# تصميم الأزرار والواجهات (اللون البرتقالي الكلاسيكي)
 st.markdown("""
     <style>
-    .main { background-color: #f3f4f6; }
-    .stButton>button {
-        width: 100%; border-radius: 12px; height: 55px;
-        background-color: white; color: #e67e22;
-        border: 2px solid #e67e22; font-weight: bold;
-    }
-    .header-style {
-        background-color: #e67e22; color: white;
-        padding: 10px; text-align: center; border-radius: 10px;
-    }
+    .stButton>button { width: 100%; border-radius: 10px; height: 50px; background-color: white; color: #e67e22; border: 2px solid #e67e22; font-weight: bold; margin-bottom: 10px; }
+    .header-style { background-color: #e67e22; color: white; padding: 10px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
+    .sub-card { background-color: #ffffff; padding: 15px; border-radius: 10px; border-right: 5px solid #e67e22; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- إعدادات المستخدم في القائمة الجانبية (الاختيار والترتيب) ---
-st.sidebar.header("⚙️ إعدادات واجهة المستخدم")
-st.sidebar.subheader("1. اختر الأقسام الظاهرة")
-show_accounts = st.sidebar.checkbox("أرصدة الحسابات", value=True)
-show_quick_ops = st.sidebar.checkbox("العمليات السريعة", value=True)
-show_alerts = st.sidebar.checkbox("التنبيهات", value=True)
+# --- مخازن البيانات (قاعدة بيانات مصغرة داخل التطبيق) ---
+if 'db' not in st.session_state:
+    st.session_state.db = {
+        'items': ['دقيق سندي', 'زيت طبخ', 'سكر مطحون'], # المواد والاصناف
+        'accounts': {'1101': 'صندوق الرئيسي', '1201': 'شركة الأمل (مورد)', '1301': 'خالد محمد (عميل)'}, # شجرة الحسابات
+        'invoices': [], # سجل الفواتير
+        'current_view': 'الرئيسية' # واجهة التحكم
+    }
 
-st.sidebar.subheader("2. ترتيب العرض (من الأعلى للأسفل)")
-order = st.sidebar.multiselect(
-    "اسحب لإعادة الترتيب:",
-    ["الحسابات", "العمليات السريعة", "التنبيهات"],
-    default=["الحسابات", "العمليات السريعة", "التنبيهات"]
-)
+# --- وظائف الملاحة (الرجوع للرئيسية) ---
+def go_home(): st.session_state.db['current_view'] = 'الرئيسية'
 
-st.sidebar.subheader("3. تخصيص أزرار العمليات")
-selected_ops = st.sidebar.multiselect(
-    "إضافة/حذف أزرار الاختصارات:",
-    ["فاتورة مبيع", "فاتورة شراء", "سند صرف", "سند قبض", "أرصدة العملاء", "طلب تصنيع"],
-    default=["فاتورة مبيع", "سند صرف", "أرصدة العملاء"]
-)
+# --- 1. واجهة سطح المكتب (الرئيسية) ---
+if st.session_state.db['current_view'] == 'الرئيسية':
+    st.markdown("<div class='header-style'><h2>📊 لوحة تحكم الميزان</h2></div>", unsafe_allow_html=True)
+    
+    # شبكة الأزرار (الاختصارات)
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("📄 فاتورة بيع"): st.session_state.db['current_view'] = 'فاتورة'
+        if st.button("🌳 شجرة الحسابات"): st.session_state.db['current_view'] = 'شجرة'
+        if st.button("🔍 بحث المواد"): st.session_state.db['current_view'] = 'بحث_مواد'
+    with col2:
+        if st.button("📑 كشف حساب"): st.session_state.db['current_view'] = 'كشف_حساب'
+        if st.button("👤 إضافة/حذف حساب"): st.session_state.db['current_view'] = 'إدارة_حسابات'
+        if st.button("💰 أرصدة العملاء"): st.session_state.db['current_view'] = 'أرصدة'
+    
+    st.divider()
+    st.info("💡 تلميح: استخدم قائمة البحث للوصول السريع للمواد.")
 
-# --- تنفيذ الواجهة بناءً على اختياراتك ---
-st.markdown("<div class='header-style'><h3>الميزان دوت نت - تخصيصي</h3></div>", unsafe_allow_html=True)
+# --- 2. واجهة الفواتير (بيع/شراء) ---
+elif st.session_state.db['current_view'] == 'فاتورة':
+    st.subheader("📝 إنشاء فاتورة جديدة")
+    with st.form("inv_form"):
+        target = st.selectbox("الحساب (العميل/المورد)", list(st.session_state.db['accounts'].values()))
+        item = st.selectbox("المادة/الصنف", st.session_state.db['items'])
+        qty = st.number_input("الكمية", min_value=1)
+        price = st.number_input("السعر الإفرادي", min_value=0.0)
+        total = qty * price
+        st.write(f"### الإجمالي: {total} ريال")
+        if st.form_submit_button("حفظ وترحيل الفاتورة 🟠"):
+            st.session_state.db['invoices'].append({'التاريخ': '2026-03-24', 'الحساب': target, 'المادة': item, 'المبلغ': total})
+            st.success("تم الترحيل بنجاح!")
+    if st.button("🔙 عودة"): go_home()
 
-# دالة لعرض الحسابات
-def display_accounts():
-    with st.expander("💰 أرصدة الحسابات", expanded=True):
-        data = {
-            "الحساب": ["صندوق يمني", "صندوق سعودي", "صرافة السيري"],
-            "الرصيد": ["380,500", "5,000", "13,068,955"]
-        }
-        st.table(pd.DataFrame(data))
+# --- 3. واجهة شجرة الحسابات والبحث ---
+elif st.session_state.db['current_view'] == 'شجرة':
+    st.subheader("🌳 الشجرة المحاسبية")
+    search_q = st.text_input("🔍 ابحث عن حساب (عميل، مورد، موظف)...")
+    for code, name in st.session_state.db['accounts'].items():
+        if search_q.lower() in name.lower() or search_q in code:
+            st.markdown(f"<div class='sub-card'><b>{code}</b> - {name}</div>", unsafe_allow_html=True)
+    if st.button("🔙 عودة"): go_home()
 
-# دالة لعرض العمليات السريعة
-def display_quick_ops():
-    st.subheader("⚡ العمليات المختارة")
-    if not selected_ops:
-        st.write("لا توجد أزرار مختارة. أضف من القائمة الجانبية.")
-    else:
-        # توزيع الأزرار في صفوف (2 في كل صف)
-        cols = st.columns(2)
-        for idx, op in enumerate(selected_ops):
-            with cols[idx % 2]:
-                if st.button(op):
-                    st.success(f"فتح واجهة: {op}")
+# --- 4. واجهة إضافة/حذف حساب ---
+elif st.session_state.db['current_view'] == 'إدارة_حسابات':
+    st.subheader("👤 إدارة الحسابات")
+    tab1, tab2 = st.tabs(["➕ إضافة حساب", "🗑️ حذف حساب"])
+    with tab1:
+        new_code = st.text_input("رمز الحساب الجديد")
+        new_name = st.text_input("اسم الحساب (العميل/المورد)")
+        if st.button("إضافة للحسابات ✅"):
+            st.session_state.db['accounts'][new_code] = new_name
+            st.success(f"تمت إضافة {new_name}")
+    with tab2:
+        del_code = st.selectbox("اختر الحساب للحذف", list(st.session_state.db['accounts'].keys()))
+        if st.button("تأكيد الحذف ❌"):
+            del st.session_state.db['accounts'][del_code]
+            st.warning("تم حذف الحساب")
+    if st.button("🔙 عودة"): go_home()
 
-# دالة لعرض التنبيهات
-def display_alerts():
-    with st.expander("⚠️ التنبيهات النظامية"):
-        st.error("آخر نسخة احتياطية: منذ 24 ساعة")
-        st.warning("هناك 3 فواتير بيع لم ترحل بعد")
+# --- 5. بحث المواد والأصناف ---
+elif st.session_state.db['current_view'] == 'بحث_مواد':
+    st.subheader("📦 إدارة الأصناف والمواد")
+    search_item = st.text_input("ابحث عن مادة...")
+    for i in st.session_state.db['items']:
+        if search_item.lower() in i.lower():
+            st.write(f"📦 {i}")
+    new_i = st.text_input("إضافة مادة جديدة للمستودع")
+    if st.button("إضافة مادة"):
+        st.session_state.db['items'].append(new_i)
+        st.rerun()
+    if st.button("🔙 عودة"): go_home()
 
-# عرض الأقسام حسب الترتيب المختار
-for section in order:
-    if section == "الحسابات" and show_accounts:
-        display_accounts()
-    elif section == "العمليات السريعة" and show_quick_ops:
-        display_quick_ops()
-    elif section == "التنبيهات" and show_alerts:
-        display_alerts()
-
-st.markdown("---")
-st.caption("نسخة الجوال المرنة v2.0 - نظام الميزان")
+# --- 6. كشف الحساب ---
+elif st.session_state.db['current_view'] == 'كشف_حساب':
+    st.subheader("📑 تقرير كشف حساب تفصيلي")
+    acc_filter = st.selectbox("اختر الحساب", list(st.session_state.db['accounts'].values()))
+    if st.session_state.db['invoices']:
+        df = pd.DataFrame(st.session_state.db['invoices'])
+        result = df[df['الحساب'] == acc_filter]
+        st.table(result)
+    else: st.warning("لا توجد حركات مسجلة لهذا الحساب")
+    if st.button("🔙 عودة"): go_home()
