@@ -1,114 +1,91 @@
 import streamlit as st
 
-# 1. إعدادات أساسية للجوال
-st.set_page_config(page_title="الميزان برو", layout="centered")
+# إعداد الصفحة لتكون نظيفة جداً
+st.set_page_config(page_title="الميزان دوت نت", layout="centered")
 
-# 2. نظام التنقل
+# --- إدارة التنقل ---
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
 
-# 3. تصميم CSS "شامل وقوي" لإصلاح كل العيوب السابقة
+# --- تصميم CSS مستوحى من "الميزان" (الأزرق والوردي) ---
 st.markdown("""
     <style>
-    .block-container { padding: 0px !important; }
+    .block-container { padding: 10px !important; }
     footer, header, #MainMenu {visibility: hidden;}
-    .stApp { background-color: #f1f5f9; }
+    .stApp { background-color: #f0faff; }
 
-    /* الهيدر */
-    .app-header {
-        background-color: #2563eb; color: white; padding: 15px;
-        text-align: center; font-weight: bold; font-size: 18px;
+    /* عنوان الفاتورة الوردي المميز */
+    .inv-header {
+        color: #e91e63; font-weight: bold; font-size: 24px;
+        text-align: center; margin-bottom: 20px;
     }
 
-    /* إصلاح تباعد الأعمدة على الجوال */
-    [data-testid="column"] {
-        width: 100% !important;
-        flex: 1 1 calc(33.33% - 10px) !important;
-        min-width: calc(33.33% - 10px) !important;
+    /* تصميم الحقول لتبدو كجداول الميزان */
+    .stTextInput>div>div>input, .stSelectbox>div>div>div {
+        border: 1px solid #3498db !important;
+        border-radius: 5px !important;
     }
-    
-    /* تصميم الأزرار العلوية (3 أعمدة) */
+
+    /* الأزرار الزرقاء */
     div.stButton > button {
-        width: 100% !important;
-        height: 50px !important;
-        border-radius: 8px !important;
-        font-size: 11px !important;
-        background-color: #3b82f6 !important;
+        background-color: #3498db !important;
         color: white !important;
-        border: none !important;
-        margin-bottom: 5px !important;
+        border-radius: 20px !important;
+        width: 100% !important;
     }
 
-    /* تصميم البطاقات السفلية (2 عمود) */
-    .card-zone div.stButton > button {
-        height: 120px !important;
-        background-color: white !important;
-        color: #1e293b !important;
-        border: 1px solid #cbd5e1 !important;
-        font-size: 14px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
-    }
-
-    /* الفوتر */
-    .footer {
-        position: fixed; bottom: 0; width: 100%;
-        background-color: #1e40af; color: white;
-        display: grid; grid-template-columns: repeat(3, 1fr);
-        text-align: center; padding: 10px 0; font-size: 11px;
+    /* شريط المعلومات السفلي */
+    .mizan-footer {
+        background-color: white; border: 2px solid #3498db;
+        border-radius: 10px; padding: 15px; margin-top: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- محتوى الصفحة الرئيسية ---
-if st.session_state.page == 'home':
-    st.markdown("<div class='app-header'>نظام محاسبي متكامل</div>", unsafe_allow_html=True)
+# --- واجهة الفاتورة (روح الميزان) ---
+st.markdown("<div class='inv-header'>فاتورة بيع نقداً</div>", unsafe_allow_html=True)
 
-    # النصف العلوي: 3 أعمدة متساوية
-    st.write(" ") # مسافة بسيطة
-    t1, t2, t3 = st.columns(3)
-    with t1:
-        st.button("📄 سند صرف")
-        st.button("🔍 كشف حساب")
-    with t2:
-        if st.button("➕ فاتورة"):
-            st.session_state.page = 'invoice'
-            st.rerun()
-        st.button("💱 صرف عملة")
-    with t3:
-        st.button("📝 قيد عام")
-        st.button("📊 مراجعة")
+# القسم الأول: البيانات الأساسية
+with st.container():
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        st.text_input("رقم الفاتورة", value="3087")
+    with col2:
+        st.selectbox("حساب الصندوق", ["الصندوق الرئيسي", "صندوق المبيعات"])
 
-    st.markdown("<hr style='margin:10px;'>", unsafe_allow_html=True)
+# القسم الثاني: البحث والمخزن
+st.text_input("🔍 بحث عن حساب (عميل)")
+st.selectbox("المخزن", ["مخزن بضاعة جاهزة", "المخزن الرئيسي"])
 
-    # النصف السفلي: البطاقات (2 عمود)
-    st.markdown("<div class='card-zone'>", unsafe_allow_html=True)
-    b1, b2 = st.columns(2)
-    with b1:
-        st.button("👤\nالعملاء\n0", key="k1")
-        st.button("🏢\nالموظفين\n0", key="k3")
-        st.button("🛒\nالمشتريات\n0", key="k5")
-    with b2:
-        st.button("🚚\nالموردين\n0", key="k2")
-        st.button("📉\nالمبيعات\n0", key="k4")
-        st.button("✂️\nالمصاريف\n0", key="k6")
-    st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("---")
 
-    # الفوتر الثابت
-    st.markdown("""
-        <div class='footer'>
-            <div>الإيرادات<br>0.00</div>
-            <div>المصروفات<br>0.00</div>
-            <div>الأرباح<br>0.00</div>
-        </div>
-        """, unsafe_allow_html=True)
+# القسم الثالث: إضافة المواد (الجدول التفاعلي)
+col_m, col_q, col_p = st.columns([2, 1, 1])
+with col_m:
+    st.text_input("المادة", placeholder="اسم الصنف")
+with col_q:
+    st.text_input("العدد", value="1")
+with col_p:
+    st.text_input("السعر", value="0.00")
 
-# --- صفحة الفاتورة ---
-elif st.session_state.page == 'invoice':
-    st.markdown("<div class='app-header'>إضافة فاتورة</div>", unsafe_allow_html=True)
-    if st.button("🔙 عودة للرئيسية"):
-        st.session_state.page = 'home'
-        st.rerun()
-    
-    st.text_input("اسم العميل")
-    st.number_input("المبلغ الإجمالي")
-    st.button("حفظ الفاتورة ✅")
+if st.button("➕ إضافة المادة للفاتورة"):
+    st.success("تمت الإضافة للجدول")
+
+# القسم الرابع: ملخص الفاتورة (الفوتر الأبيض)
+st.markdown("<div class='mizan-footer'>", unsafe_allow_html=True)
+f1, f2 = st.columns(2)
+with f1:
+    st.write("**الإجمالي:** 0.00")
+    st.write("**الضريبة (15%):** 0.00")
+with f2:
+    st.write("**الخصم:** 0.00")
+    st.write("### **الصافي: 0.00**")
+st.markdown("</div>", unsafe_allow_html=True)
+
+# أزرار الحفظ والطباعة
+st.write(" ")
+save_col, print_col = st.columns(2)
+with save_col:
+    st.button("💾 حفظ الفاتورة")
+with print_col:
+    st.button("🖨️ طباعة")
