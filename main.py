@@ -1,116 +1,99 @@
 import streamlit as st
 import pandas as pd
 
-# إعداد الصفحة وتغيير اللون الأساسي للبرتقالي
-st.set_page_config(page_title="نظام الميزان المحاسبي - Orange Edition", layout="wide")
+# إعدادات الصفحة - واجهة عريضة
+st.set_page_config(page_title="المحاسبة التجارية Pro", layout="wide", initial_sidebar_state="expanded")
 
-# تصميم CSS مخصص للأيقونات البرتقالية وشجرة الحسابات
+# تصميم CSS متقدم لمحاكاة تطبيقات المحاسبة التجارية (اللون البرتقالي والرمادي الاحترافي)
 st.markdown("""
     <style>
-    /* تغيير ألوان العناوين والأيقونات للبرتقالي */
-    .header-box { background-color: #FF8C00; color: white; padding: 15px; border-radius: 5px; text-align: center; }
-    .stTabs [data-baseweb="tab-list"] { gap: 20px; }
-    .stTabs [data-baseweb="tab"] { 
-        background-color: #f0f2f6; border-radius: 5px 5px 0 0; padding: 10px 20px; color: #333;
-    }
-    .stTabs [aria-selected="true"] { 
-        background-color: #FF8C00 !important; color: white !important; 
-    }
-    /* تنسيق الجداول لتشبه تقارير الميزان */
-    .report-font { font-family: 'Tahoma'; font-size: 14px; }
+    .main { background-color: #f4f7f6; }
+    [data-testid="stSidebar"] { background-color: #262730; color: white; }
+    .stMetric { background-color: white; padding: 20px; border-radius: 10px; border-right: 5px solid #FF8C00; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn-box { background-color: #FF8C00; color: white; padding: 10px; border-radius: 5px; text-align: center; cursor: pointer; margin: 5px; font-weight: bold; }
+    .account-tree { font-family: 'Segoe UI'; font-size: 14px; color: #FF8C00; }
+    div.stButton > button { background-color: #FF8C00; color: white; border-radius: 5px; width: 100%; height: 3em; border: none; font-weight: bold; }
+    div.stButton > button:hover { background-color: #e67e00; border: none; }
     </style>
     """, unsafe_allow_html=True)
 
-# ترويسة البرنامج بالأيقونة البرتقالية
-st.markdown("<div class='header-box'><h1>🟠 برنامج الميزان للمحاسبة والمستودعات</h1></div>", unsafe_allow_html=True)
-
+# بيانات الجلسة
 if 'journal' not in st.session_state:
     st.session_state.journal = []
 
-# --- الشجرة المحاسبية المنظمة ---
-st.sidebar.markdown("### 🌳 الشجرة المحاسبية")
-accounts_tree = {
-    "1- الأصول": {
-        "11- الأصول المتداولة": ["1101- الصندوق", "1102- المصرف", "1103- مخزون أول المدة"],
-        "12- الأصول الثابتة": ["1201- الأثاث", "1202- الآلات والمعدات"]
-    },
-    "2- الخصوم": {
-        "21- الالتزامات": ["2101- الموردون", "2102- قروض بنكية"]
-    },
-    "3- الإيرادات": {
-        "31- المبيعات": ["3101- مبيعات محلية", "3102- مبيعات خارجية"]
-    },
-    "4- المصاريف": {
-        "41- المشتريات": ["4101- مشتريات بضاعة"],
-        "42- الأجور": ["4201- رواتب موظفين", "4202- بدلات سفر"]
-    }
-}
+# --- شجرة الحسابات الدائمة في القائمة الجانبية ---
+with st.sidebar:
+    st.markdown("<h2 style='text-align: center; color: #FF8C00;'>🌳 شجرة الحسابات</h2>", unsafe_allow_html=True)
+    with st.expander("📂 1- الأصول (الموجودات)"):
+        st.write("📄 1101- الصندوق الرئيسي")
+        st.write("📄 1102- بنك البلاد")
+        st.write("📄 1201- مخزون المستودع")
+    with st.expander("📂 2- الخصوم (المطاليب)"):
+        st.write("📄 2101- شركة التوريدات")
+        st.write("📄 2201- ذمم دائنة")
+    with st.expander("📂 3- الإيرادات"):
+        st.write("📄 3101- مبيعات نقدية")
+        st.write("📄 3102- مبيعات آجلة")
+    with st.expander("📂 4- المصاريف"):
+        st.write("📄 4101- مشتريات بضاعة")
+        st.write("📄 4201- إيجارات ورواتب")
+    st.markdown("---")
+    st.info("نظام المحاسبة التجارية - الإصدار 2.0")
 
-# عرض الشجرة في القائمة الجانبية (للمراجعة فقط)
-for parent, children in accounts_tree.items():
-    with st.sidebar.expander(parent):
-        for sub_parent, sub_children in children.items():
-            st.write(f"📂 {sub_parent}")
-            for acc in sub_children:
-                st.write(f"📄 {acc}")
+# --- الواجهة الرئيسية (الواجهة التي طلبتها) ---
+st.markdown("<h1 style='text-align: right; color: #262730;'>📊 لوحة تحكم المحاسبة التجارية</h1>", unsafe_allow_html=True)
 
-# --- التبويبات الرئيسية (أيقونات برتقالية عند التحديد) ---
-tabs = st.tabs(["🏠 الرئيسية", "📝 سند قيد", "📊 ميزان المراجعة", "📁 بطاقة حساب"])
+# 1. صناديق الحالة السريعة (Top Metrics)
+if st.session_state.journal:
+    df = pd.DataFrame(st.session_state.journal)
+    rev = df[df["النوع"] == "إيراد"]["المبلغ"].sum()
+    exp = df[df["النوع"] == "مصروف"]["المبلغ"].sum()
+    bal = rev - exp
+else:
+    rev, exp, bal = 0, 0, 0
 
-with tabs[0]:
-    st.subheader("🟠 ملخص الحركة المالية")
-    if st.session_state.journal:
-        df = pd.DataFrame(st.session_state.journal)
-        c1, c2, c3 = st.columns(3)
-        total_debit = df["مدين"].sum()
-        total_credit = df["دائن"].sum()
-        c1.metric("إجمالي المقبوضات", f"{total_debit:,.2f} $")
-        c2.metric("إجمالي المدفوعات", f"{total_credit:,.2f} $")
-        c3.metric("الرصيد الدفتري", f"{total_debit - total_credit:,.2f} $")
-    else:
-        st.info("قم بإضافة عمليات من تبويب 'سند قيد' لتفعيل التقارير.")
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("💰 السيولة النقدية", f"{bal:,.2f}")
+c2.metric("📈 إجمالي المبيعات", f"{rev:,.2f}")
+c3.metric("📉 إجمالي المصاريف", f"{exp:,.2f}")
+c4.metric("⚖️ صافي الربح", f"{bal:,.2f}", delta=float(bal))
 
-with tabs[1]:
-    st.markdown("### 📝 إدخال سند قيد جديد")
-    with st.container():
-        col1, col2 = st.columns(2)
-        main_cat = col1.selectbox("المستوى الأول (الشجرة)", list(accounts_tree.keys()))
-        sub_cat = col1.selectbox("المستوى الثاني", list(accounts_tree[main_cat].keys()))
-        final_acc = col1.selectbox("الحساب التفصيلي", accounts_tree[main_cat][sub_cat])
-        
-        amount = col2.number_input("المبلغ المالي", min_value=0.0)
-        entry_type = col2.radio("نوع القيد", ["مدين (+)", "دائن (-)"])
-        note = st.text_input("بيان العملية")
-        
-        if st.button("ترحيل السند إلى الحسابات 🟠"):
-            st.session_state.journal.append({
-                "التاريخ": pd.Timestamp.now().strftime("%Y-%m-%d"),
-                "الحساب": final_acc,
-                "مدين": amount if "مدين" in entry_type else 0,
-                "دائن": amount if "دائن" in entry_type else 0,
-                "البيان": note
-            })
-            st.success(f"تم ترحيل المبلغ إلى حساب {final_acc}")
+st.markdown("---")
 
-with tabs[2]:
-    st.markdown("### ⚖️ ميزان المراجعة بالمجاميع والأرصدة")
-    if st.session_state.journal:
-        df = pd.DataFrame(st.session_state.journal)
-        summary = df.groupby("الحساب").agg({"مدين": "sum", "دائن": "sum"})
-        summary["الرصيد"] = summary["مدين"] - summary["دائن"]
-        st.dataframe(summary.style.format("{:,.2f}"), use_container_width=True)
-    else:
-        st.warning("لا توجد بيانات مسجلة.")
+# 2. منطقة العمليات الرئيسية (مثل أزرار التطبيق الفعلي)
+col_a, col_b = st.columns([1, 2])
 
-with tabs[3]:
-    st.markdown("### 📁 استعراض بطاقة حساب")
-    all_accs = [acc for sub in accounts_tree.values() for s_sub in sub.values() for acc in s_sub]
-    search = st.selectbox("ابحث عن الحساب", all_accs)
-    if st.session_state.journal:
-        df = pd.DataFrame(st.session_state.journal)
-        st.table(df[df["الحساب"] == search])
+with col_a:
+    st.markdown("### ⚡ عمليات سريعة")
+    op = st.radio("اختر العملية:", ["➕ فاتورة مبيعات", "➖ سند صرف مصروف", "🔄 قيد يومية", "📑 كشف حساب"])
+    
+with col_b:
+    if "فاتورة مبيعات" in op:
+        st.subheader("📝 إنشاء فاتورة مبيعات جديدة")
+        with st.form("sale_form"):
+            acc = st.selectbox("إلى حساب (الزبون/الصندوق)", ["1101- الصندوق الرئيسي", "3101- مبيعات نقدية"])
+            amt = st.number_input("قيمة الفاتورة", min_value=0.0)
+            note = st.text_input("ملاحظات الفاتورة")
+            if st.form_submit_button("اعتماد وحفظ الفاتورة"):
+                st.session_state.journal.append({"التاريخ": pd.Timestamp.now().strftime("%Y-%m-%d"), "الحساب": acc, "المبلغ": amt, "النوع": "إيراد", "البيان": note})
+                st.success("تم الحفظ!")
 
-# خيارات الحفظ
-st.sidebar.markdown("---")
-if st.sidebar.button("💾 تصدير قاعدة البيانات"):
-    st.sidebar.info("تم حفظ البيانات بنجاح في السيرفر.")
+    elif "سند صرف" in op:
+        st.subheader("💸 سند صرف مصروفات")
+        with st.form("exp_form"):
+            acc = st.selectbox("من حساب (المصروفات)", ["4101- مشتريات بضاعة", "4201- إيجارات ورواتب"])
+            amt = st.number_input("المبلغ المدفوع", min_value=0.0)
+            note = st.text_input("بيان الصرف")
+            if st.form_submit_button("تأكيد الصرف"):
+                st.session_state.journal.append({"التاريخ": pd.Timestamp.now().strftime("%Y-%m-%d"), "الحساب": acc, "المبلغ": amt, "النوع": "مصروف", "البيان": note})
+                st.success("تم الصرف!")
+
+# 3. جدول البيانات السفلي (مثل شاشة عرض القيود في التطبيق)
+st.markdown("### 🔍 سجل العمليات الأخيرة")
+if st.session_state.journal:
+    st.table(pd.DataFrame(st.session_state.journal).tail(10))
+else:
+    st.write("لا توجد عمليات مسجلة اليوم.")
+
+# تذييل الصفحة
+st.sidebar.button("💾 حفظ البيانات (Cloud Backup)")
