@@ -1,142 +1,114 @@
 import streamlit as st
 
 # إعداد الصفحة
-st.set_page_config(page_title="النظام المتكامل", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="النظام المحاسبي المتكامل", layout="centered")
 
-# تصميم CSS لإجبار العناصر على التنسيق الشبكي (Grid) مثل التطبيقات
+# --- إدارة الحالة (Navigation) ---
+if 'page' not in st.session_state:
+    st.session_state.page = 'home'
+
+# --- التصميم المتقدم (CSS) لجعل الأزرار غير مرئية وفوق الصور ---
 st.markdown("""
     <style>
     #MainMenu, footer, header {visibility: hidden;}
-    .block-container { padding: 0px !important; }
-    .stApp { background-color: #ffffff; }
-
+    .stApp { background-color: #f8fafc; }
+    
+    /* تنسيق الحاوية الرئيسية */
+    .main-container { padding: 10px; margin-bottom: 70px; }
+    
+    /* تصميم البطاقة التفاعلية */
+    div.stButton > button {
+        background-color: white;
+        border: 1px solid #bfdbfe;
+        border-radius: 15px;
+        height: 120px !important;
+        width: 100%;
+        color: #1e293b;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        transition: 0.2s;
+    }
+    div.stButton > button:hover {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+        transform: scale(1.02);
+    }
+    
     /* الشريط العلوي */
     .app-header {
-        background-color: #2563eb; color: white; padding: 12px;
-        display: flex; justify-content: space-between; align-items: center;
-        font-weight: bold; position: sticky; top: 0; z-index: 1000;
+        background-color: #2563eb; color: white; padding: 15px;
+        text-align: center; font-weight: bold; border-radius: 0 0 15px 15px;
+        margin-bottom: 10px;
     }
-
-    /* شبكة الأزرار العلوية الصغيرة (3 أعمدة) */
-    .quick-actions {
-        display: grid; grid-template-columns: repeat(3, 1fr);
-        gap: 5px; padding: 10px; background-color: #f1f5f9;
-    }
-    .action-btn {
-        background-color: #3b82f6; color: white; border-radius: 5px;
-        padding: 8px 2px; text-align: center; font-size: 10px; font-weight: bold;
-    }
-
-    /* شبكة البطاقات الرئيسية (2 عمود - متناسقة تماماً) */
-    .main-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr; /* هذا ما يضمن وجود عمودين بجانب بعضهما */
-        gap: 12px;
-        padding: 15px;
-        margin-bottom: 60px;
-    }
-    .card {
-        background: white;
-        border: 1.5px solid #dbeafe;
-        border-radius: 15px;
-        padding: 20px 10px;
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .card-icon { font-size: 40px; margin-bottom: 10px; }
-    .card-title { font-size: 14px; font-weight: bold; color: #334155; margin: 0; }
-    .card-count { color: #ef4444; font-size: 20px; font-weight: bold; margin-top: 5px; }
 
     /* الفوتر السفلي */
-    .footer-status {
-        position: fixed; bottom: 0; width: 100%;
+    .footer-bar {
+        position: fixed; bottom: 0; left: 0; width: 100%;
         background-color: #1d4ed8; color: white;
         display: grid; grid-template-columns: repeat(3, 1fr);
-        text-align: center; padding: 10px 0; font-size: 11px;
+        text-align: center; padding: 10px 0; font-size: 11px; z-index: 1000;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 1. Header
-st.markdown("""
-    <div class='app-header'>
-        <span>🔍</span>
-        <span>نظام محاسبي متكامل</span>
-        <span>☰</span>
-    </div>
-    """, unsafe_allow_html=True)
+# --- منطق التنقل بين الصفحات ---
 
-# 2. Quick Actions (الأزرار الصغيرة)
-# نستخدم HTML و CSS Grid لضمان التنسيق
-st.markdown("""
-    <div class='quick-actions'>
-        <div class='action-btn' style='background-color:#2563eb;'>سند صرف/قبض</div>
-        <div class='action-btn' style='background-color:#2563eb;'>سند جديد</div>
-        <div class='action-btn' style='background-color:#2563eb;'>قيد عام</div>
-        <div class='action-btn' style='background-color:#8b5cf6;'>فاتورة جديدة</div>
-        <div class='action-btn' style='background-color:#8b5cf6;'>حوالة جديدة</div>
-        <div class='action-btn' style='background-color:#8b5cf6;'>عروض/طلبيات</div>
-        <div class='action-btn'>مراجعة الحركات</div>
-        <div class='action-btn'>صرف عملات</div>
-        <div class='action-btn'>كشف حساب</div>
-    </div>
-    """, unsafe_allow_html=True)
+# 1. الصفحة الرئيسية (واجهة البطاقات)
+if st.session_state.page == 'home':
+    st.markdown("<div class='app-header'>نظام محاسبي متكامل</div>", unsafe_allow_html=True)
+    
+    # شبكة الوصول السريع (الأزرار الصغيرة العلوية)
+    c1, c2, c3 = st.columns(3)
+    with c1: st.button("📄 سندات", on_click=lambda: st.info("فتح السندات"))
+    with c2: st.button("➕ فاتورة", on_click=lambda: setattr(st.session_state, 'page', 'invoice'))
+    with c3: st.button("🔍 كشف حساب")
 
-# 3. Main Dashboard Grid (البطاقات المتناسقة 2x2)
-# هنا السر في التنسيق المتطابق مع الصورة
-st.markdown("""
-    <div class='main-grid'>
-        <div class='card'>
-            <div class='card-icon'>👤</div>
-            <p class='card-title'>العملاء</p>
-            <p class='card-count'>0</p>
-        </div>
-        <div class='card'>
-            <div class='card-icon'>🚚</div>
-            <p class='card-title'>الموردين</p>
-            <p class='card-count'>0</p>
-        </div>
-        <div class='card'>
-            <div class='card-icon'>🏢</div>
-            <p class='card-title'>الموظفين</p>
-            <p class='card-count'>0</p>
-        </div>
-        <div class='card'>
-            <div class='card-icon'>✂️</div>
-            <p class='card-title'>المصاريف</p>
-            <p class='card-count'>0</p>
-        </div>
-        <div class='card'>
-            <div class='card-icon'>📉</div>
-            <p class='card-title'>المشتريات</p>
-            <p class='card-count'>0</p>
-        </div>
-        <div class='card'>
-            <div class='card-icon'>📈</div>
-            <p class='card-title'>المبيعات</p>
-            <p class='card-count'>0</p>
-        </div>
-        <div class='card'>
-            <div class='card-icon'>🏦</div>
-            <p class='card-title'>الصناديق والبنوك</p>
-            <p class='card-count'>0</p>
-        </div>
-        <div class='card'>
-            <div class='card-icon'>📜</div>
-            <p class='card-title'>الاصول</p>
-            <p class='card-count'>0</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.write("---")
 
-# 4. Fixed Footer
-st.markdown("""
-    <div class='footer-status'>
-        <div>الإيرادات<br>0.00</div>
-        <div>المصروفات<br>0.00</div>
-        <div>صافي الأرباح<br>0.00</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # شبكة البطاقات الرئيسية (2x2)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("👤\nالعملاء\n0"):
+            st.session_state.page = 'customers'
+        if st.button("🏢\nالموظفين\n0"):
+            st.info("صفحة الموظفين")
+        if st.button("📉\nالمشتريات\n0"):
+            st.info("صفحة المشتريات")
+            
+    with col2:
+        if st.button("🚚\nالموردين\n0"):
+            st.info("صفحة الموردين")
+        if st.button("✂️\nالمصاريف\n0"):
+            st.info("صفحة المصاريف")
+        if st.button("📈\nالمبيعات\n0"):
+            st.session_state.page = 'sales_report'
+
+    st.markdown("""
+        <div class='footer-bar'>
+            <div>الإيرادات<br>0.00</div>
+            <div>المصروفات<br>0.00</div>
+            <div>الأرباح<br>0.00</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+# 2. صفحة فاتورة البيع (المطابقة للصورة السابقة)
+elif st.session_state.page == 'invoice':
+    st.markdown("<div class='app-header'>فاتورة بيع جديدة</div>", unsafe_allow_html=True)
+    if st.button("🔙 العودة للرئيسية"):
+        st.session_state.page = 'home'
+        st.rerun()
+    
+    # هنا نضع كود الفاتورة الذي صممناه سابقاً
+    st.text_input("رقم الفاتورة", "3087")
+    st.selectbox("حساب الصندوق", ["الصندوق الرئيسي", "صندوق العملات"])
+    st.number_input("الكمية", min_value=1)
+    st.button("حفظ الفاتورة ✅")
+
+# 3. صفحة العملاء
+elif st.session_state.page == 'customers':
+    st.subheader("👥 دليل العملاء")
+    if st.button("🔙 عودة"):
+        st.session_state.page = 'home'
+        st.rerun()
+    st.write("قائمة العملاء المسجلين تظهر هنا...")
+    st.text_input("إضافة عميل جديد")
