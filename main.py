@@ -2,108 +2,68 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# --- 1. إعدادات النظام المحاسبي ---
-st.set_page_config(page_title="الخوارزمي للمحاسبة والمستودعات", layout="wide")
+# إعداد الصفحة لتكون واسعة جداً مثل برامج الكمبيوتر
+st.set_page_config(page_title="الخوارزمي - نظام المحاسبة والمستودعات", layout="wide")
 
-# --- 2. محاكاة قاعدة البيانات (Database Engine) ---
-if 'accounting_system' not in st.session_state:
-    st.session_state.accounting_system = {
-        # دفتر اليومية العام
-        'journal': pd.DataFrame(columns=['ID', 'Date', 'Account_Code', 'Account_Name', 'Debit', 'Credit', 'Note']),
-        # دليل الحسابات (شجرة الحسابات)
-        'chart_of_accounts': {
-            '101': {'name': 'الصندوق', 'type': 'Asset', 'balance': 0},
-            '102': {'name': 'المخزن الرئيسي', 'type': 'Asset', 'balance': 0},
-            '301': {'name': 'إيراد المبيعات', 'type': 'Revenue', 'balance': 0},
-            '401': {'name': 'تكلفة البضاعة المباعة', 'type': 'Expense', 'balance': 0},
-            '501': {'name': 'المصاريف العمومية', 'type': 'Expense', 'balance': 0}
-        },
-        # المستودع (الأصناف)
-        'warehouse': {
-            'صنف_1': {'qty': 100, 'cost': 50, 'price': 80},
-            'صنف_2': {'qty': 50, 'cost': 120, 'price': 180}
-        }
-    }
+# --- محاكي قاعدة البيانات (Database) ---
+if 'ledger' not in st.session_state:
+    st.session_state.ledger = pd.DataFrame(columns=['التاريخ', 'الحساب', 'مدين', 'دائن', 'البيان'])
+    st.session_state.balances = {"صندوق": 380500.00, "صندوق العملات": 0.00, "صرافة السنيري": 13068955.00}
 
-# --- 3. محرك القيود المحاسبية (The Accounting Core) ---
-def post_journal_entry(debit_entries, credit_entries, note):
-    """وظيفة ترحيل القيود وضمان توازن النظام"""
-    total_debit = sum([e['amount'] for e in debit_entries])
-    total_credit = sum([e['amount'] for e in credit_entries])
-    
-    if total_debit != total_credit:
-        return False, "خطأ: القيد غير متوازن!"
-
-    date = datetime.now().strftime("%Y-%m-%d %H:%M")
-    entry_id = len(st.session_state.accounting_system['journal']) // 2 + 1
-    
-    for e in debit_entries + credit_entries:
-        is_debit = e in debit_entries
-        new_row = {
-            'ID': entry_id, 'Date': date, 'Account_Code': e['code'],
-            'Account_Name': st.session_state.accounting_system['chart_of_accounts'][e['code']]['name'],
-            'Debit': e['amount'] if is_debit else 0,
-            'Credit': 0 if is_debit else e['amount'],
-            'Note': note
-        }
-        st.session_state.accounting_system['journal'] = pd.concat(
-            [st.session_state.accounting_system['journal'], pd.DataFrame([new_row])], ignore_index=True
-        )
-    return True, "تم الترحيل بنجاح"
-
-# --- 4. واجهة المستخدم الرسومية ---
+# --- التصميم الاحترافي (نفس ألوان الميزان في الصورة) ---
 st.markdown("""
     <style>
-    .main { background-color: #f0f4f8; }
-    .stButton>button { width: 100%; border-radius: 10px; height: 3em; font-weight: bold; }
-    .header-box { background: #1e3a8a; color: white; padding: 20px; text-align: center; border-radius: 15px; margin-bottom: 20px; }
+    .stApp { background-color: #f0f2f5; }
+    /* الهيدر العلوي */
+    .top-header { background: #e67e22; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #d35400; }
+    /* كتل المعلومات (الاختصارات، الحسابات) */
+    .mizan-block { background: white; border: 1px solid #bdc3c7; border-radius: 4px; margin-bottom: 10px; }
+    .mizan-block-title { background: #34495e; color: white; padding: 5px 10px; font-size: 14px; font-weight: bold; text-align: right; }
+    .mizan-content { padding: 10px; font-size: 13px; }
+    /* الساعة الكبيرة */
+    .big-clock { color: #2c3e50; font-size: 48px; font-weight: bold; text-align: right; margin: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# القائمة الجانبية (الموديلات)
-menu = st.sidebar.selectbox("القائمة البرمجية", ["لوحة التحكم", "فاتورة مبيعات", "المستودعات", "دفتر اليومية", "ميزان المراجعة"])
+# --- الهيدر (الخوارزمي دوت نت) ---
+st.markdown("""
+    <div class='top-header'>
+        <div>الخوارزمي دوت نت<br><small>للمحاسبة والمستودعات</small></div>
+        <div style='text-align:left;'>مسؤول النظام<br><small>ABO OMER2026</small></div>
+    </div>
+    """, unsafe_allow_html=True)
 
-# --- موديول: لوحة التحكم ---
-if menu == "لوحة التحكم":
-    st.markdown("<div class='header-box'><h1>الخوارزمي للمحاسبة والمستودعات</h1></div>", unsafe_allow_html=True)
-    df = st.session_state.accounting_system['journal']
-    cash = df[df['Account_Code'] == '101']['Debit'].sum() - df[df['Account_Code'] == '101']['Credit'].sum()
-    sales = df[df['Account_Code'] == '301']['Credit'].sum()
+# --- الواجهة الرئيسية (محاكاة الصورة 100%) ---
+col_left, col_mid, col_right = st.columns([1, 1, 1])
+
+with col_left:
+    # بلوك التحذيرات
+    st.markdown("<div class='mizan-block'><div class='mizan-block-title'>⛔ التحذيرات</div><div class='mizan-content' style='color:red;'>إن آخر عملية نسخ احتياطي محولة تمت في: 2026/03/24</div></div>", unsafe_allow_html=True)
+    # بلوك تلميح اليوم
+    st.markdown("<div class='mizan-block'><div class='mizan-block-title'>💡 تلميح اليوم</div><div class='mizan-content'>يمكنك إخفاء بعض الحقول التي لا تحتاجها عبر قائمة 'خيارات البرنامج'.</div></div>", unsafe_allow_html=True)
+
+with col_mid:
+    # بلوك الاختصارات (أساس العمل)
+    st.markdown("<div class='mizan-block'><div class='mizan-block-title'>🔗 الاختصارات</div><div class='mizan-content'>", unsafe_allow_html=True)
+    if st.button("📄 فاتورة مبيع آجل"): pass
+    if st.button("💸 سند صرف"): pass
+    if st.button("📥 إدخال بضاعة جاهزة"): pass
+    if st.button("💰 أرصدة العملاء"): pass
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+with col_right:
+    # الساعة والتاريخ (كما في الصورة)
+    now = datetime.now()
+    st.markdown(f"<div class='big-clock'>{now.strftime('%H:%M')}</div>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:right;'>{now.strftime('%B %d, %A')}</p>", unsafe_allow_html=True)
     
-    c1, c2 = st.columns(2)
-    c1.metric("💰 رصيد الصندوق", f"{cash:,.2f}")
-    c2.metric("📈 إجمالي المبيعات", f"{sales:,.2f}")
+    # بلوك الحسابات (الأرصدة الحقيقية)
+    st.markdown("<div class='mizan-block'><div class='mizan-block-title'>🏦 الحسابات</div><div class='mizan-content'>", unsafe_allow_html=True)
+    for acc, bal in st.session_state.balances.items():
+        st.write(f"**{acc}:** {bal:,.2f} ريال")
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
-# --- موديول: فاتورة مبيعات (الربط الكامل) ---
-elif menu == "فاتورة مبيعات":
-    st.header("🛒 تحرير فاتورة مبيعات")
-    with st.form("sale_inv"):
-        item_name = st.selectbox("اختر الصنف", list(st.session_state.accounting_system['warehouse'].keys()))
-        qty = st.number_input("الكمية", min_value=1)
-        price = st.session_state.accounting_system['warehouse'][item_name]['price']
-        cost = st.session_state.accounting_system['warehouse'][item_name]['cost']
-        st.info(f"سعر الوحدة: {price} | الإجمالي: {qty*price}")
-        
-        if st.form_submit_button("حفظ وترحيل"):
-            total_sale = qty * price
-            total_cost = qty * cost
-            
-            # قيد المبيعات (من الصندوق إلى المبيعات)
-            post_journal_entry(
-                [{'code': '101', 'amount': total_sale}], # مدين
-                [{'code': '301', 'amount': total_sale}], # دائن
-                f"فاتورة مبيعات صنف: {item_name}"
-            )
-            # تحديث المخزن (إنقاص الكمية)
-            st.session_state.accounting_system['warehouse'][item_name]['qty'] -= qty
-            st.success("تم الحفظ وتوليد القيود وتحديث المخازن!")
-
-# --- موديول: ميزان المراجعة ---
-elif menu == "ميزان المراجعة":
-    st.header("⚖️ ميزان المراجعة بالأرصدة")
-    df = st.session_state.accounting_system['journal']
-    if not df.empty:
-        trial_balance = df.groupby(['Account_Code', 'Account_Name']).agg({'Debit':'sum', 'Credit':'sum'})
-        st.table(trial_balance)
-    else:
-        st.warning("لا توجد بيانات محاسبية بعد.")
+# --- شريط الأدوات السفلي ---
+st.markdown("---")
+st.subheader("📑 القيود المحاسبية الأخيرة (دفتر اليومية)")
+st.dataframe(st.session_state.ledger, use_container_width=True)
