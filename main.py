@@ -1,114 +1,120 @@
 import streamlit as st
 
-# إعداد الصفحة
-st.set_page_config(page_title="النظام المحاسبي المتكامل", layout="centered")
+# إعداد الصفحة كأنها تطبيق أندرويد
+st.set_page_config(page_title="نظام الميزان المتكامل", layout="centered", initial_sidebar_state="collapsed")
 
-# --- إدارة الحالة (Navigation) ---
+# --- إدارة التنقل (Navigation) ---
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
 
-# --- التصميم المتقدم (CSS) لجعل الأزرار غير مرئية وفوق الصور ---
+# --- هندسة الواجهة CSS (لضبط التناسق 100%) ---
 st.markdown("""
     <style>
-    #MainMenu, footer, header {visibility: hidden;}
-    .stApp { background-color: #f8fafc; }
-    
-    /* تنسيق الحاوية الرئيسية */
-    .main-container { padding: 10px; margin-bottom: 70px; }
-    
-    /* تصميم البطاقة التفاعلية */
-    div.stButton > button {
-        background-color: white;
-        border: 1px solid #bfdbfe;
-        border-radius: 15px;
-        height: 120px !important;
-        width: 100%;
-        color: #1e293b;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-        transition: 0.2s;
-    }
-    div.stButton > button:hover {
-        border-color: #3b82f6;
-        background-color: #eff6ff;
-        transform: scale(1.02);
-    }
-    
-    /* الشريط العلوي */
+    /* إلغاء الفراغات العلوية والسفلية */
+    .block-container { padding: 0px !important; margin: 0px !important; }
+    footer, header, #MainMenu {visibility: hidden;}
+    .stApp { background-color: #f1f5f9; }
+
+    /* الشريط العلوي الأزرق */
     .app-header {
         background-color: #2563eb; color: white; padding: 15px;
-        text-align: center; font-weight: bold; border-radius: 0 0 15px 15px;
-        margin-bottom: 10px;
+        text-align: center; font-weight: bold; font-size: 18px;
+        border-radius: 0 0 15px 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
-    /* الفوتر السفلي */
-    .footer-bar {
-        position: fixed; bottom: 0; left: 0; width: 100%;
-        background-color: #1d4ed8; color: white;
-        display: grid; grid-template-columns: repeat(3, 1fr);
-        text-align: center; padding: 10px 0; font-size: 11px; z-index: 1000;
+    /* شبكة البطاقات (Grid) 2x2 */
+    .cards-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* عمودين متساويين دائماً */
+        gap: 12px;
+        padding: 15px;
+        margin-bottom: 70px;
+    }
+
+    /* تصميم الزر ليبدو كبطاقة */
+    .stButton > button {
+        width: 100% !important;
+        height: 130px !important;
+        background-color: white !important;
+        border: 2px solid #e2e8f0 !important;
+        border-radius: 15px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: 0.3s !important;
+    }
+    .stButton > button:hover {
+        border-color: #3b82f6 !important;
+        background-color: #f0f9ff !important;
+    }
+
+    /* شريط المعلومات السفلي الثابت */
+    .status-footer {
+        position: fixed; bottom: 0; width: 100%;
+        background-color: #1e40af; color: white;
+        display: grid; grid-template-columns: 1fr 1fr 1fr;
+        text-align: center; padding: 10px 0; font-size: 11px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- منطق التنقل بين الصفحات ---
+# --- محتوى الصفحات ---
 
-# 1. الصفحة الرئيسية (واجهة البطاقات)
+# 1. الصفحة الرئيسية
 if st.session_state.page == 'home':
     st.markdown("<div class='app-header'>نظام محاسبي متكامل</div>", unsafe_allow_html=True)
     
-    # شبكة الوصول السريع (الأزرار الصغيرة العلوية)
-    c1, c2, c3 = st.columns(3)
-    with c1: st.button("📄 سندات", on_click=lambda: st.info("فتح السندات"))
-    with c2: st.button("➕ فاتورة", on_click=lambda: setattr(st.session_state, 'page', 'invoice'))
-    with c3: st.button("🔍 كشف حساب")
+    # شبكة الأزرار العلوية الصغيرة (3 أعمدة)
+    top_c1, top_c2, top_c3 = st.columns(3)
+    with top_c1: st.button("📄 سندات")
+    with top_c2: 
+        if st.button("➕ فاتورة"):
+            st.session_state.page = 'invoice'
+            st.rerun()
+    with top_c3: st.button("🔍 بحث")
 
-    st.write("---")
-
-    # شبكة البطاقات الرئيسية (2x2)
+    # شبكة البطاقات الرئيسية (2x2) - هنا نضمن التناسق
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("👤\nالعملاء\n0"):
+        if st.button("👤\nالعملاء\n0", key="cust"):
             st.session_state.page = 'customers'
-        if st.button("🏢\nالموظفين\n0"):
-            st.info("صفحة الموظفين")
-        if st.button("📉\nالمشتريات\n0"):
-            st.info("صفحة المشتريات")
-            
-    with col2:
-        if st.button("🚚\nالموردين\n0"):
-            st.info("صفحة الموردين")
-        if st.button("✂️\nالمصاريف\n0"):
-            st.info("صفحة المصاريف")
-        if st.button("📈\nالمبيعات\n0"):
-            st.session_state.page = 'sales_report'
+            st.rerun()
+        if st.button("🏢\nالموظفين\n0", key="emp"): pass
+        if st.button("📉\nالمشتريات\n0", key="purch"): pass
 
+    with col2:
+        if st.button("🚚\nالموردين\n0", key="supp"): pass
+        if st.button("✂️\nالمصاريف\n0", key="exp"): pass
+        if st.button("📈\nالمبيعات\n0", key="sales"): pass
+
+    # الفوتر السفلي
     st.markdown("""
-        <div class='footer-bar'>
+        <div class='status-footer'>
             <div>الإيرادات<br>0.00</div>
             <div>المصروفات<br>0.00</div>
             <div>الأرباح<br>0.00</div>
         </div>
         """, unsafe_allow_html=True)
 
-# 2. صفحة فاتورة البيع (المطابقة للصورة السابقة)
+# 2. صفحة الفاتورة (مثال للتنقل)
 elif st.session_state.page == 'invoice':
-    st.markdown("<div class='app-header'>فاتورة بيع جديدة</div>", unsafe_allow_html=True)
+    st.markdown("<div class='app-header'>فاتورة بيع نقداً</div>", unsafe_allow_html=True)
     if st.button("🔙 العودة للرئيسية"):
         st.session_state.page = 'home'
         st.rerun()
     
-    # هنا نضع كود الفاتورة الذي صممناه سابقاً
-    st.text_input("رقم الفاتورة", "3087")
-    st.selectbox("حساب الصندوق", ["الصندوق الرئيسي", "صندوق العملات"])
-    st.number_input("الكمية", min_value=1)
-    st.button("حفظ الفاتورة ✅")
+    st.info("قم بإدخال بيانات الفاتورة هنا...")
+    st.text_input("اسم العميل")
+    st.number_input("المبلغ")
+    st.button("حفظ ✅")
 
 # 3. صفحة العملاء
 elif st.session_state.page == 'customers':
-    st.subheader("👥 دليل العملاء")
+    st.markdown("<div class='app-header'>دليل العملاء</div>", unsafe_allow_html=True)
     if st.button("🔙 عودة"):
         st.session_state.page = 'home'
         st.rerun()
-    st.write("قائمة العملاء المسجلين تظهر هنا...")
-    st.text_input("إضافة عميل جديد")
+    st.text_input("🔍 بحث عن عميل")
+    st.write("لا يوجد عملاء حالياً")
